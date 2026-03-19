@@ -1,0 +1,34 @@
+.input-wrapper {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.input-wrapper input {
+    border: none;
+    border-radius: 5px;
+    height: 30px;
+    font-size: 16px;
+    margin-top: 2px;
+    background-color: var(--background-color);
+    padding-left: 6px;
+}
+
+.input-wrapper input::placeholder {
+    transform: translateX(10px);
+
+}
+
+.input-wrapper .label-input {
+    line-height: 1.1;
+    padding: 0;
+    margin: 0;
+    font-size: 15px;
+}
+
+.error-input-text {
+    line-height: 1.1;
+    font-weight: 500;
+    font-size: 13px;
+    color: var(--error-color);
+}

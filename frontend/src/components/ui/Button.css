@@ -1,0 +1,30 @@
+.button-component {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 200px;
+    height: 40px;
+    border: none;
+
+    color: #FFF;
+    background-color: var(--primary-color);
+    border-radius: 10px;
+    font-weight: bold;
+    font-size: 16px;
+    transition-duration: 0.5s;
+    transition-property: filter, opacity;
+
+}
+
+.button-component:hover {
+    filter: brightness(1.2);
+}
+
+.button-component.is-loading {
+    cursor: wait;
+}
+
+.button-component:disabled {
+    opacity: 0.6;
+    pointer-events: none;
+}
