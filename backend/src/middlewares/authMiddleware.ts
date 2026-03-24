@@ -25,3 +25,14 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
     req.user = user;
     next();
 }
+
+export function requireAdmin(req: Request, res: Response, next: NextFunction) {
+
+    if (!req.user || req.user.role !== 'admin') {
+        return res.status(403).json({
+            success: false,
+            reason: 'Accès refusé'
+        });
+    }
+    next();
+};

@@ -37,9 +37,9 @@ export function getUserByLogin(username: string, password: string): Promise<User
 type createUserResponse = "success" | "user_exists" | "error";
 interface createUserResult {
     status: createUserResponse;
-    token?: string;
+    user?: User;
 };
-export function createUser(username: string, password: string): Promise<createUserResult> {
+export function createUser(username: string, password: string, role: User['role']): Promise<createUserResult> {
     return new Promise(async (resolve, reject) => {
 
         //check before attempting to create
@@ -55,14 +55,16 @@ export function createUser(username: string, password: string): Promise<createUs
                     id: users.length + 1,
                     username,
                     hashedPassword: hash,
-                    token: generateToken()
+                    token: generateToken(),
+                    role,
+                    date_created: new Date()
                 };
                 users.push(newUser);
-                resolve({ status: "success", token: newUser.token });
+                resolve({ status: "success", user: newUser });
             });
         } catch {
             resolve({ status: "error" });
         };
     });
 };
-createUser("robert", "12345678");   
+createUser("admin", "12345678", "admin"); //TEMPORAIRE,  A CHANGER PLUS TARD

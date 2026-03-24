@@ -5,5 +5,5 @@ import { requireAuth } from "../middlewares/authMiddleware.js";
 const router = express.Router();
 
 router.post("/login", loginUser);
-router.post("/verifyToken", requireAuth, verifyTokenUser)
+router.post("/verifyToken", requireAuth, verifyTokenUser);
 export default router;
