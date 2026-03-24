@@ -5,6 +5,7 @@ interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, '
     onCheck?: (value: string) => string | null;
     onChange?: (value: string) => void;
     onToggleError?: (hasError: boolean) => void;
+    validationDeps?: ReadonlyArray<unknown>;
     label: string;
 }
 
@@ -12,6 +13,7 @@ const Input: React.FC<InputProps> = ({
     onCheck,
     onChange,
     onToggleError,
+    validationDeps = [],
     className = "",
     value = '',
     label = '',
@@ -28,7 +30,7 @@ const Input: React.FC<InputProps> = ({
             setError(validationError);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [value]);
+    }, [value, ...validationDeps]);
 
     // Notifier le parent quand l'erreur change
     useEffect(() => {

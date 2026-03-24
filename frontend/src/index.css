@@ -19,7 +19,7 @@ body,
 
 :root {
   --main-background-color: #ffffff;
-  --main-background-color-2: #e2e2e2;
+  --main-border-color: #ccc;
   --primary-color: #f04d0d;
   --error-color: #ff4d4f;
 }

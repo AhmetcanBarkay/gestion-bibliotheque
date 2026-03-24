@@ -9,8 +9,18 @@
     padding: 30px;
     border-radius: 20px;
     background-color: var(--main-background-color);
-    border: 1px solid var(--main-background-color-2);
+    border: 1px solid var(--main-border-color);
     color: var(--primary-color);
+}
+
+.auth-toggle-btn {
+    margin-top: 6px;
+    border: none;
+    background: transparent;
+    color: var(--primary-color);
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: underline;
 }
 
 
@@ -24,9 +34,10 @@ body {
     font-weight: bold;
     font-size: 14px;
     text-align: left;
-    width: 100%
+    width: 100%;
+    white-space: pre-line;
 }
 
 .input-wrapper input {
-    border: 1px solid var(--main-background-color-2) !important;
+    border: 1px solid var(--main-border-color) !important;
 }

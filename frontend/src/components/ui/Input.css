@@ -31,4 +31,6 @@
     font-weight: 500;
     font-size: 13px;
     color: var(--error-color);
+    white-space: pre-line;
+    min-height: 28px;
 }
