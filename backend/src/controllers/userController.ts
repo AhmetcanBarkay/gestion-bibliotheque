@@ -14,7 +14,7 @@ export async function loginUser(req: Request<{}, loginResponse, loginBody>, res:
         if (!username || !password) {
             return res.status(400).json({
                 success: false,
-                reason: "Invalid fields"
+                reason: "Champs invalides"
             });
         };
 
@@ -22,7 +22,7 @@ export async function loginUser(req: Request<{}, loginResponse, loginBody>, res:
         if (!user) {
             return res.status(401).json({
                 success: false,
-                reason: "Invalid credentials"
+                reason: "Identifiants invalides"
             });
         }
 
@@ -34,7 +34,7 @@ export async function loginUser(req: Request<{}, loginResponse, loginBody>, res:
         console.error(err);
         res.status(500).json({
             success: false,
-            reason: "Internal server error"
+            reason: "Erreur interne"
         });
     };
 };

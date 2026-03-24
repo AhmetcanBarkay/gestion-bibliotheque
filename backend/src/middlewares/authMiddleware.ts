@@ -7,7 +7,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(401).json({
             success: false,
-            reason: 'Authentication required'
+            reason: 'Authentification requis'
         });
     }
 
@@ -17,7 +17,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
     if (!user) {
         return res.status(401).json({
             success: false,
-            reason: 'Invalid or expired token'
+            reason: 'Token invalide ou expiré'
         });
     }
 
