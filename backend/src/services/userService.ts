@@ -29,7 +29,8 @@ export function getUserByLogin(username: string, password: string): Promise<User
         if (!user) return resolve(undefined);
         bcrypt.compare(password, user.hashedPassword, (err, result) => {
             if (err) return reject(err);
-            if (result) resolve(user);
+            if (result) return resolve(user);
+            resolve(undefined);
         });
     });
 };
@@ -66,5 +67,9 @@ export function createUser(username: string, password: string, role: User['role'
             resolve({ status: "error" });
         };
     });
+};
+
+export function registerClientUser(username: string, password: string): Promise<createUserResult> {
+    return createUser(username, password, "client");
 };
 createUser("admin", "12345678", "admin"); //TEMPORAIRE,  A CHANGER PLUS TARD
