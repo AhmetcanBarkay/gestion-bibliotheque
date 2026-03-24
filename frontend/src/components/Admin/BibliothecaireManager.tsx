@@ -170,8 +170,6 @@ function BibliothecaireManager({ activeMenu }: BibliothecaireManagerProps) {
                         </div> : null
                 }
 
-                {statusMessage.length > 0 ? <p className="admin-status">{statusMessage}</p> : null}
-
                 {
                     activeMenu === "delete" ?
                         <Button
@@ -181,6 +179,8 @@ function BibliothecaireManager({ activeMenu }: BibliothecaireManagerProps) {
                             Actualiser
                         </Button> : null
                 }
+                {statusMessage.length > 0 ? <p style={{ marginTop: "10px" }} className="admin-status">{statusMessage}</p> : null}
+
             </div>
         </div>
     );
