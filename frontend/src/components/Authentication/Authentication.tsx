@@ -5,7 +5,8 @@ import Input from "../ui/Input";
 import { apiHelper } from "../../api/apiHelper";
 import type { loginBody, loginResponse, registerBody, registerResponse } from "@shared/types/api/authApi.js";
 import type { Role } from "@shared/types/roles.js";
-import { getPasswordRulesErrors } from "@shared/utils/passwordRules.js";
+import { getPasswordRulesErrors, PASSWORD_MAX_LENGTH } from "@shared/utils/passwordRules.js";
+import { getUsernameRulesErrors, USERNAME_ALLOWED_INPUT_REGEX, USERNAME_MAX_LENGTH } from "@shared/utils/usernameRules.js";
 interface AuthentificationProps {
     onAuthSuccess: (session: { role: Role, username: string }) => void;
 }
@@ -18,9 +19,27 @@ function Authentification(props: AuthentificationProps) {
     const [errors, setErrors] = useState(new Set<string>());
     const [errorMessage, setErrorMessage] = useState("");
 
+    const handleUsernameChange = (value: string) => {
+        if (value.length > USERNAME_MAX_LENGTH) return;
+        if (!USERNAME_ALLOWED_INPUT_REGEX.test(value)) return;
+        setUsername(value);
+    };
+
+    const handlePasswordChange = (value: string) => {
+        if (value.length > PASSWORD_MAX_LENGTH) return;
+        setPassword(value);
+    };
+
+    const handleConfirmPasswordChange = (value: string) => {
+        if (value.length > PASSWORD_MAX_LENGTH) return;
+        setConfirmPassword(value);
+    };
+
     const getPasswordError = (value: string): string | null => {
         if (value.length === 0) return "Mot de passe requis";
-        if (mode === "login") return null;
+        if (mode === "login") {
+            return value.length > 100 ? "Mot de passe trop long (max 100 caractères)" : null;
+        }
 
         const rules = getPasswordRulesErrors(value);
 
@@ -109,16 +128,22 @@ function Authentification(props: AuthentificationProps) {
                 <Input
                     label="Nom d'utilisateur"
                     value={username}
-                    onChange={setUsername}
+                    onChange={handleUsernameChange}
                     onToggleError={handleToggleError("username")}
-                    onCheck={(v) => v.length === 0 ? "Nom d'utilisateur requis" : null}
+                    maxLength={USERNAME_MAX_LENGTH}
+                    onCheck={(v) => {
+                        if (v.length === 0) return "Nom d'utilisateur requis";
+                        const rules = getUsernameRulesErrors(v);
+                        return rules.length === 0 ? null : `Nom d'utilisateur invalide:\n- ${rules.join("\n- ")}`;
+                    }}
                 />
                 <Input
                     type="password"
                     label="Mot de passe"
                     value={password}
-                    onChange={setPassword}
+                    onChange={handlePasswordChange}
                     onToggleError={handleToggleError("password")}
+                    maxLength={PASSWORD_MAX_LENGTH}
                     onCheck={getPasswordError}
                 />
                 {
@@ -127,8 +152,9 @@ function Authentification(props: AuthentificationProps) {
                             type="password"
                             label="Confirmer le mot de passe"
                             value={confirmPassword}
-                            onChange={setConfirmPassword}
+                            onChange={handleConfirmPasswordChange}
                             onToggleError={handleToggleError("confirmPassword")}
+                            maxLength={PASSWORD_MAX_LENGTH}
                             validationDeps={[password, mode]}
                             onCheck={(v) => {
                                 if (mode !== "register") return null;
