@@ -1,11 +1,13 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import './Authentication.css';
 import Button from "../ui/Button";
 import Input from "../ui/Input";
 import { apiHelper } from "../../api/apiHelper";
 import type { loginBody, loginResponse, registerBody, registerResponse } from "@shared/types/api/authApi.js";
+import type { Role } from "@shared/types/roles.js";
+import { getPasswordRulesErrors } from "@shared/utils/passwordRules.js";
 interface AuthentificationProps {
-    setLoggedIn: React.Dispatch<React.SetStateAction<boolean>>
+    onAuthSuccess: (session: { role: Role, username: string }) => void;
 }
 
 function Authentification(props: AuthentificationProps) {
@@ -20,11 +22,7 @@ function Authentification(props: AuthentificationProps) {
         if (value.length === 0) return "Mot de passe requis";
         if (mode === "login") return null;
 
-        const rules: string[] = [];
-        if (value.length < 10) rules.push("10 caractères minimum");
-        if (!/[A-Z]/.test(value)) rules.push("1 majuscule");
-        if (!/\d/.test(value)) rules.push("1 chiffre");
-        if (!/[^A-Za-z0-9]/.test(value)) rules.push("1 symbole spécial");
+        const rules = getPasswordRulesErrors(value);
 
         return rules.length === 0 ? null : `Votre mot de passe dois avoir :\n- ${rules.join("\n- ")}`;
     };
@@ -63,7 +61,10 @@ function Authentification(props: AuthentificationProps) {
 
                 if (apiResponse.success && apiResponse.token) {
                     localStorage.setItem("token", apiResponse.token);
-                    props.setLoggedIn(true);
+                    props.onAuthSuccess({
+                        role: apiResponse.role || "client",
+                        username: apiResponse.username || username
+                    });
                 } else {
                     setErrorMessage(apiResponse.reason || "Erreur inconnue");
                 };
@@ -86,7 +87,10 @@ function Authentification(props: AuthentificationProps) {
 
                 if (apiResponse.success && apiResponse.token) {
                     localStorage.setItem("token", apiResponse.token);
-                    props.setLoggedIn(true);
+                    props.onAuthSuccess({
+                        role: apiResponse.role || "client",
+                        username: apiResponse.username || username
+                    });
                 } else {
                     setErrorMessage(apiResponse.reason || "Erreur inconnue");
                 };

@@ -2,6 +2,7 @@ import express from 'express';
 import type { Request, Response } from 'express';
 import cors from 'cors';
 import auth from './routes/auth.js';
+import admin from './routes/admin.js';
 
 import dotenv from 'dotenv';
 dotenv.config();
@@ -16,6 +17,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // routes
 app.use('/auth', auth);
+app.use('/admin', admin);
 
 // non trouvée
 app.use((req: Request, res: Response) => {

@@ -17,6 +17,34 @@ export function generateToken(): string {
     return token;
 };
 
+export function generatePassword(length: number = 12): string {
+    const uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const lowercase = "abcdefghijklmnopqrstuvwxyz";
+    const digits = "0123456789";
+    const specials = "!@#$%^&*()-_=+[]{}";
+    const all = uppercase + lowercase + digits + specials;
+
+    const chars: string[] = [
+        uppercase.charAt(crypto.randomInt(0, uppercase.length)),
+        lowercase.charAt(crypto.randomInt(0, lowercase.length)),
+        digits.charAt(crypto.randomInt(0, digits.length)),
+        specials.charAt(crypto.randomInt(0, specials.length))
+    ];
+
+    for (let i = chars.length; i < length; i++) {
+        chars.push(all.charAt(crypto.randomInt(0, all.length)));
+    }
+
+    for (let i = chars.length - 1; i > 0; i--) {
+        const j = crypto.randomInt(0, i + 1);
+        const temp = chars[i];
+        chars[i] = chars[j];
+        chars[j] = temp;
+    }
+
+    return chars.join("");
+};
+
 export function getUserByUsername(username: string): Promise<User | undefined> {
     return new Promise((resolve, reject) => {
         resolve(users.find(u => u.username === username))
@@ -71,5 +99,34 @@ export function createUser(username: string, password: string, role: User['role'
 
 export function registerClientUser(username: string, password: string): Promise<createUserResult> {
     return createUser(username, password, "client");
+};
+
+export function createBibliothecaireUser(username: string, password: string): Promise<createUserResult> {
+    return createUser(username, password, "bibliothecaire");
+};
+
+type deleteUserResult = "success" | "not_found" | "invalid_role" | "error";
+export function deleteBibliothecaireByUsername(username: string): Promise<deleteUserResult> {
+    return new Promise((resolve, reject) => {
+        try {
+            const userIndex = users.findIndex(u => u.username === username);
+            if (userIndex === -1) return resolve("not_found");
+
+            if (users[userIndex].role !== "bibliothecaire") {
+                return resolve("invalid_role");
+            }
+
+            users.splice(userIndex, 1);
+            return resolve("success");
+        } catch {
+            return resolve("error");
+        }
+    });
+};
+
+export function getUsersByRole(role: User['role']): Promise<User[]> {
+    return new Promise((resolve, reject) => {
+        resolve(users.filter(u => u.role === role));
+    });
 };
 createUser("admin", "12345678", "admin"); //TEMPORAIRE,  A CHANGER PLUS TARD
