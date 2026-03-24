@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { apiHelper } from "../../api/apiHelper";
 import type { baseResponse } from "@shared/types/api/baseApi.js";
 import type { bibliothecairesResponse, createBibliothecaireBody, createBibliothecaireResponse, deleteBibliothecaireBody } from "@shared/types/api/adminApi.js";
+import { getUsernameRulesErrors, USERNAME_ALLOWED_INPUT_REGEX, USERNAME_MAX_LENGTH } from "@shared/utils/usernameRules.js";
 import Input from "../ui/Input";
 import Button from "../ui/Button";
 import "./BibliothecaireManager.css";
@@ -20,6 +21,12 @@ function BibliothecaireManager({ activeMenu }: BibliothecaireManagerProps) {
     const [statusMessage, setStatusMessage] = useState("");
     const [listMessage, setListMessage] = useState("");
     const [bibliothecaires, setBibliothecaires] = useState<Array<{ id: number; username: string; date_created: string }>>([]);
+
+    const handleCreateUsernameChange = (value: string) => {
+        if (value.length > USERNAME_MAX_LENGTH) return;
+        if (!USERNAME_ALLOWED_INPUT_REGEX.test(value)) return;
+        setUsername(value);
+    };
 
     const handleCreateToggleError = (id: string) => (hasError: boolean) => {
         setCreateErrors(prev => {
@@ -123,9 +130,14 @@ function BibliothecaireManager({ activeMenu }: BibliothecaireManagerProps) {
                                 key={createInputKey}
                                 label="Nom d'utilisateur"
                                 value={username}
-                                onChange={setUsername}
+                                onChange={handleCreateUsernameChange}
                                 onToggleError={handleCreateToggleError("create_username")}
-                                onCheck={(v) => v.length === 0 ? "Nom d'utilisateur requis" : null}
+                                maxLength={USERNAME_MAX_LENGTH}
+                                onCheck={(v) => {
+                                    if (v.length === 0) return "Nom d'utilisateur requis";
+                                    const rules = getUsernameRulesErrors(v);
+                                    return rules.length === 0 ? null : `Nom d'utilisateur invalide:\n- ${rules.join("\n- ")}`;
+                                }}
                             />
                             <Button
                                 className="admin-main-btn"

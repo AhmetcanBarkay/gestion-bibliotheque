@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import type { baseResponse } from "@shared/types/api/baseApi.js";
 import type { bibliothecairesResponse, createBibliothecaireBody, createBibliothecaireResponse, deleteBibliothecaireBody } from "@shared/types/api/adminApi.js";
 import { createBibliothecaireAccount, deleteBibliothecaireAccount, listBibliothecaires } from "../services/adminService.js";
+import { getUsernameRulesErrors } from "@shared/utils/usernameRules.js";
 
 export async function createBibliothecaire(req: Request<{}, createBibliothecaireResponse, createBibliothecaireBody>, res: Response<createBibliothecaireResponse>) {
     try {
@@ -10,6 +11,14 @@ export async function createBibliothecaire(req: Request<{}, createBibliothecaire
             return res.status(400).json({
                 success: false,
                 reason: "Champs invalides:\n- nom d'utilisateur requis"
+            });
+        }
+
+        const usernameRulesErrors = getUsernameRulesErrors(username);
+        if (usernameRulesErrors.length > 0) {
+            return res.status(400).json({
+                success: false,
+                reason: `Nom d'utilisateur invalide:\n- ${usernameRulesErrors.join("\n- ")}`
             });
         }
 

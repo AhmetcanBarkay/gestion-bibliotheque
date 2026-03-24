@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import type { loginBody, loginResponse, registerBody, registerResponse, verifyTokenBody, verifyTokenResponse } from "@shared/types/api/authApi.js";
 import { getUserByLogin, registerClientUser } from '../services/userService.js';
 import { getPasswordRulesErrors } from '@shared/utils/passwordRules.js';
+import { getUsernameRulesErrors } from '@shared/utils/usernameRules.js';
 
 function isStrongPassword(password: string): boolean {
     const hasMinLength = password.length >= 10;
@@ -27,6 +28,21 @@ export async function loginUser(req: Request<{}, loginResponse, loginBody>, res:
                 reason: "Champs invalides"
             });
         };
+
+        const usernameRulesErrors = getUsernameRulesErrors(username);
+        if (usernameRulesErrors.length > 0) {
+            return res.status(400).json({
+                success: false,
+                reason: `Nom d'utilisateur invalide:\n- ${usernameRulesErrors.join("\n- ")}`
+            });
+        }
+
+        if (password.length > 100) {
+            return res.status(400).json({
+                success: false,
+                reason: "Mot de passe invalide:\n- 100 caractères maximum"
+            });
+        }
 
         const user = await getUserByLogin(username, password);
         if (!user) {
@@ -64,6 +80,14 @@ export async function registerUser(req: Request<{}, registerResponse, registerBo
                 reason: `Champs invalides:\n- ${inputErrors.join("\n- ")}`
             });
         };
+
+        const usernameRulesErrors = getUsernameRulesErrors(username);
+        if (usernameRulesErrors.length > 0) {
+            return res.status(400).json({
+                success: false,
+                reason: `Nom d'utilisateur invalide:\n- ${usernameRulesErrors.join("\n- ")}`
+            });
+        }
 
         const passwordRuleErrors = getPasswordRulesErrors(password);
         if (!isStrongPassword(password) || passwordRuleErrors.length > 0) {
