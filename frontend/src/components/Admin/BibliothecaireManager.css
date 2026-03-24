@@ -1,0 +1,138 @@
+.admin-bibliothecaire-manager {
+    --admin-action-btn-width: 96px;
+    width: min(900px, 95vw);
+    margin: 30px auto;
+    padding: 24px;
+    box-sizing: border-box;
+    min-height: calc(100vh - 170px);
+    display: flex;
+    flex-direction: column;
+    color: #202020;
+}
+
+.admin-main-content {
+    flex: 1;
+}
+
+.admin-bibliothecaire-manager h2 {
+    margin-bottom: 18px;
+    color: var(--primary-color);
+}
+
+.admin-panel {
+    padding: 6px 0;
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.admin-panel.admin-panel-create {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.admin-panel.admin-panel-delete {
+    width: 100%;
+}
+
+.admin-panel h3 {
+    font-size: 17px;
+    color: #1f1f1f;
+}
+
+.button-component.admin-main-btn,
+.button-component.admin-refresh-btn,
+.admin-delete-item-btn {
+    border: none;
+    background: var(--primary-color);
+    color: #fff;
+    border-radius: 8px;
+    width: var(--admin-action-btn-width);
+    min-width: var(--admin-action-btn-width);
+    height: 34px;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 0 10px;
+}
+
+.button-component.admin-main-btn:disabled {
+    opacity: 0.7;
+}
+
+.admin-list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.admin-refresh-btn {
+    justify-content: center;
+}
+
+.admin-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.admin-list li {
+    border: 1px solid var(--main-border-color);
+    border-radius: 8px;
+    padding: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.admin-list-user {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.admin-list li.is-deleting {
+    opacity: 0.75;
+}
+
+.admin-list-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.admin-delete-item-btn:disabled {
+    opacity: 0.65;
+}
+
+.admin-status,
+.admin-list-message {
+    white-space: pre-line;
+    color: var(--error-color);
+    font-weight: 700;
+}
+
+@media (max-width: 600px) {
+    .admin-bibliothecaire-manager {
+        width: 95vw;
+        padding: 14px;
+    }
+
+    .admin-list li {
+        align-items: flex-start;
+    }
+
+    .admin-panel.admin-panel-create {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .admin-list li {
+        gap: 8px;
+    }
+
+}

@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
-import type { loginBody, loginResponse, registerBody, registerResponse, verifyTokenBody } from "@shared/types/api/authApi.js";
+import type { loginBody, loginResponse, registerBody, registerResponse, verifyTokenBody, verifyTokenResponse } from "@shared/types/api/authApi.js";
 import { getUserByLogin, registerClientUser } from '../services/userService.js';
-import type { baseResponse } from '@shared/types/api/baseApi.js';
+import { getPasswordRulesErrors } from '@shared/utils/passwordRules.js';
 
 function isStrongPassword(password: string): boolean {
     const hasMinLength = password.length >= 10;
@@ -11,18 +11,11 @@ function isStrongPassword(password: string): boolean {
     return hasMinLength && hasUppercase && hasDigit && hasSpecial;
 }
 
-function getPasswordRulesErrors(password: string): string[] {
-    const errors: string[] = [];
-    if (password.length < 10) errors.push("10 caractères minimum");
-    if (!/[A-Z]/.test(password)) errors.push("1 majuscule");
-    if (!/\d/.test(password)) errors.push("1 chiffre");
-    if (!/[^A-Za-z0-9]/.test(password)) errors.push("1 symbole spécial");
-    return errors;
-}
-
-export async function verifyTokenUser(req: Request<{}, baseResponse, verifyTokenBody>, res: Response<baseResponse>) {
+export async function verifyTokenUser(req: Request<{}, verifyTokenResponse, verifyTokenBody>, res: Response<verifyTokenResponse>) {
     res.status(200).json({
-        success: req.user ? true : false
+        success: req.user ? true : false,
+        role: req.user?.role,
+        username: req.user?.username
     });
 };
 export async function loginUser(req: Request<{}, loginResponse, loginBody>, res: Response<loginResponse>) {
@@ -45,7 +38,9 @@ export async function loginUser(req: Request<{}, loginResponse, loginBody>, res:
 
         res.status(200).json({
             success: true,
-            token: user.token
+            token: user.token,
+            role: user.role,
+            username: user.username
         });
     } catch (err) {
         console.error(err);
@@ -102,7 +97,9 @@ export async function registerUser(req: Request<{}, registerResponse, registerBo
 
         return res.status(201).json({
             success: true,
-            token: result.user.token
+            token: result.user.token,
+            role: result.user.role,
+            username: result.user.username
         });
     } catch (err) {
         console.error(err);
