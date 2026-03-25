@@ -105,23 +105,12 @@ export function createBibliothecaireUser(username: string, password: string): Pr
     return createUser(username, password, "bibliothecaire");
 };
 
-type deleteUserResult = "success" | "not_found" | "invalid_role" | "error";
-export function deleteBibliothecaireByUsername(username: string): Promise<deleteUserResult> {
-    return new Promise((resolve, reject) => {
-        try {
-            const userIndex = users.findIndex(u => u.username === username);
-            if (userIndex === -1) return resolve("not_found");
-
-            if (users[userIndex].role !== "bibliothecaire") {
-                return resolve("invalid_role");
-            }
-
-            users.splice(userIndex, 1);
-            return resolve("success");
-        } catch {
-            return resolve("error");
-        }
-    });
+type deleteUserResult = "success" | "not_found" | "error";
+export function deleteUserById(id: number): Promise<deleteUserResult> {
+    const index = users.findIndex(u => u.id === id);
+    if (index === -1) return Promise.resolve("not_found");
+    users.splice(index, 1);
+    return Promise.resolve("success");
 };
 
 export function getUsersByRole(role: User['role']): Promise<User[]> {

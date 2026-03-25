@@ -69,17 +69,10 @@ export async function deleteBibliothecaire(req: Request<{}, baseResponse, delete
             });
         }
 
-        if (result === "invalid_role") {
+        if (result === "wrong_role") {
             return res.status(400).json({
                 success: false,
                 reason: "Ce compte n'est pas un bibliothécaire"
-            });
-        }
-
-        if (result !== "success") {
-            return res.status(500).json({
-                success: false,
-                reason: "Erreur interne"
             });
         }
 
