@@ -46,8 +46,9 @@ export function generatePassword(length: number = 12): string {
 };
 
 export function getUserByUsername(username: string): Promise<User | undefined> {
+    const searchUsername = username.toLowerCase();
     return new Promise((resolve, reject) => {
-        resolve(users.find(u => u.username === username))
+        resolve(users.find(u => u.username.toLowerCase() === searchUsername))
     });
 };
 
