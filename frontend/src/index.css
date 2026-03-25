@@ -20,7 +20,7 @@ body,
 :root {
   --main-background-color: #ffffff;
   --main-border-color: #ccc;
-  --primary-color: #f04d0d;
+  --primary-color: #ff7a22;
   --error-color: #ff4d4f;
 }
 
@@ -44,16 +44,18 @@ button {
   cursor: pointer;
 }
 
-.app-shell {
-  min-height: 100%;
+#authenticated-main-content {
+  width: min(900px, 95vw);
+  margin: 30px auto;
+  padding: 24px;
+  box-sizing: border-box;
+  min-height: calc(100vh - 170px);
   display: flex;
   flex-direction: column;
+  color: #202020;
 }
 
-.app-main {
-  flex: 1;
-}
-
-.app-shell .app-main {
-  padding-bottom: 58px;
+#authenticated-main-content h2 {
+  margin-bottom: 18px;
+  color: var(--primary-color);
 }
