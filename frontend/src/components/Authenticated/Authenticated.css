@@ -1,0 +1,15 @@
+.authenticated-main-content{
+    width: min(900px, 95vw);
+    margin: 30px auto;
+    padding: 24px;
+    box-sizing: border-box;
+    min-height: calc(100vh - 170px);
+    display: flex;
+    flex-direction: column;
+    color: #202020;
+}
+
+.authenticated-main-content h2 {
+    margin-bottom: 18px;
+    color: var(--primary-color);
+}

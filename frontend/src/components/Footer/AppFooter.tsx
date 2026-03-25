@@ -1,17 +1,17 @@
 import "./AppFooter.css";
 
-interface FooterAction {
-    key: string;
+export interface FooterAction<K extends string> {
+    key: K;
     label: string;
 }
 
-interface AppFooterProps {
-    actions: FooterAction[];
-    activeKey?: string;
-    onSelect?: (key: string) => void;
+interface AppFooterProps<K extends string> {
+    actions: FooterAction<K>[];
+    activeKey?: K;
+    onSelect?: (key: K) => void;
 }
 
-function AppFooter({ actions, activeKey, onSelect }: AppFooterProps) {
+function AppFooter<K extends string>({ actions, activeKey, onSelect }: AppFooterProps<K>) {
     return (
         <footer className="app-footer">
             <div className="app-footer-content">
