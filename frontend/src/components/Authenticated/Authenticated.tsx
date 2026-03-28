@@ -1,5 +1,6 @@
 import type { Role } from "@shared/types/roles";
 import AdminPage from "../Admin/AdminPage";
+import BibliothecairePage from "../Bibliothecaire/BibliothecairePage";
 import "./Authenticated.css";
 
 interface AuthenticatedProps {
@@ -11,6 +12,8 @@ function renderContentForRole(role: Role | null) {
     switch (role) {
         case "admin":
             return <AdminPage />;
+        case "bibliothecaire":
+            return <BibliothecairePage />;
         default:
             return <div>Content for default role, role: {role}</div>;
     }

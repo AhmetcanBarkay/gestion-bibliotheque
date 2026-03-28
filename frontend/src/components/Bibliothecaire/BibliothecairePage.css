@@ -1,0 +1,77 @@
+.bibliothecaire-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.bibliothecaire-panel p {
+    color: var(--text-color);
+    line-height: 1.35;
+    font-size: 14px;
+}
+
+.biblio-surface {
+    border: 1px solid var(--main-border-color);
+    border-radius: 10px;
+    padding: 10px;
+    background: var(--main-background-color);
+}
+
+.biblio-input {
+    height: 34px;
+    border: 1px solid var(--main-border-color);
+    border-radius: 8px;
+    padding: 0 10px;
+    font-size: 13px;
+}
+
+.button-component.biblio-btn,
+.biblio-btn {
+    border: 1px solid var(--main-border-color);
+    border-radius: 8px;
+    background: var(--main-background-color);
+    color: var(--text-color);
+    padding: 0 10px;
+    font-weight: 700;
+    font-size: 12px;
+}
+
+.button-component.biblio-btn-pill,
+.biblio-btn.biblio-btn-pill {
+    border-radius: 999px;
+}
+
+.button-component.biblio-btn-success,
+.biblio-btn.biblio-btn-success {
+    border-color: var(--success-color);
+    color: var(--success-color);
+}
+
+.button-component.biblio-btn-danger,
+.biblio-btn.biblio-btn-danger {
+    border-color: var(--danger-color);
+    color: var(--danger-color);
+}
+
+.button-component.biblio-btn-info,
+.biblio-btn.biblio-btn-info {
+    color: var(--info-color);
+}
+
+.bibliothecaire-action-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.bibliothecaire-action-panel h3 {
+    color: var(--text-color);
+    font-size: 15px;
+}
+
+
+.bibliothecaire-status {
+    color: var(--error-color) !important;
+    font-weight: 700;
+    white-space: pre-line;
+}

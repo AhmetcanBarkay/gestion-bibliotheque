@@ -119,4 +119,6 @@ export function getUsersByRole(role: User['role']): Promise<User[]> {
         resolve(users.filter(u => u.role === role));
     });
 };
-createUser("admin", "12345678", "admin"); //TEMPORAIRE,  A CHANGER PLUS TARD
+//comptes temporaire
+createUser("admin", "12345678", "admin");
+createUser("test", "12345678", "bibliothecaire"); 

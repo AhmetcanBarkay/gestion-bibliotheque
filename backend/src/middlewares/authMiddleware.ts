@@ -36,3 +36,13 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction) {
     }
     next();
 };
+
+export function requireBibliothecaire(req: Request, res: Response, next: NextFunction) {
+    if (!req.user || (req.user.role !== 'bibliothecaire' && req.user.role !== 'admin')) {
+        return res.status(403).json({
+            success: false,
+            reason: 'Accès refusé'
+        });
+    }
+    next();
+};
