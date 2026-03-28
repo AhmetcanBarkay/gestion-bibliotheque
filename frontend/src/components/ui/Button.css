@@ -6,7 +6,7 @@
     height: 40px;
     border: none;
 
-    color: #FFF;
+    color: var(--main-background-color);
     background-color: var(--primary-color);
     border-radius: 10px;
     font-weight: bold;

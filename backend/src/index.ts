@@ -3,9 +3,10 @@ import type { Request, Response } from 'express';
 import cors from 'cors';
 import auth from './routes/auth.js';
 import admin from './routes/admin.js';
+import bibliothecaire from './routes/bibliothecaire.js';
 
 import dotenv from 'dotenv';
-import { requireAdmin, requireAuth } from './middlewares/authMiddleware.js';
+import { requireAdmin, requireAuth, requireBibliothecaire } from './middlewares/authMiddleware.js';
 dotenv.config();
 
 const app = express();
@@ -19,6 +20,7 @@ app.use(express.urlencoded({ extended: true }));
 // routes
 app.use('/auth', auth);
 app.use('/admin', requireAuth, requireAdmin, admin);
+app.use('/bibliothecaire', requireAuth, requireBibliothecaire, bibliothecaire);
 
 // non trouvée
 app.use((req: Request, res: Response) => {

@@ -19,7 +19,7 @@
 
 .admin-panel h3 {
     font-size: 17px;
-    color: #1f1f1f;
+    color: var(--text-color);
 }
 
 .button-component.admin-main-btn,
@@ -27,7 +27,7 @@
 .admin-delete-item-btn {
     border: none;
     background: var(--primary-color);
-    color: #fff;
+    color: var(--main-background-color);
     border-radius: 8px;
     width: 96px;
     height: 34px;

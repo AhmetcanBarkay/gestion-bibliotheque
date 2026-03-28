@@ -14,14 +14,20 @@ body,
 #root {
   height: 100%;
   font-family: 'Ubuntu', sans-serif;
-  color: black;
+  color: var(--text-color);
 }
 
 :root {
   --main-background-color: #ffffff;
+  --gray-background-color: #f8f8f8;
   --main-border-color: #ccc;
   --primary-color: #ff7a22;
   --error-color: #ff4d4f;
+  --text-color: #202020;
+  --text-gray-color: #555;
+  --info-color: #24579b;
+  --success-color: #2d9f52;
+  --danger-color: #cf3f3f;
 }
 
 textarea:focus,
@@ -52,7 +58,8 @@ button {
   min-height: calc(100vh - 170px);
   display: flex;
   flex-direction: column;
-  color: #202020;
+  color: var(--text-color);
+  padding-bottom: 100px;
 }
 
 #authenticated-main-content h2 {
