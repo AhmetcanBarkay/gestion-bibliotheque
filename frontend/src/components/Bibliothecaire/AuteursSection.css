@@ -38,14 +38,34 @@
 
 .auteur-item-main {
     display: flex;
-    flex-direction: column;
-    gap: 4px;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    flex: 1;
+}
+
+.auteur-item-input {
+    flex: 1;
+}
+
+.auteur-nom {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.auteur-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .auteur-livre-count {
     color: var(--text-gray-color);
     font-size: 12px;
     font-weight: 700;
+    margin-left: auto;
+    white-space: nowrap;
 }
 
 .auteur-livre-count.linked {
@@ -53,7 +73,8 @@
 }
 
 .auteur-add-btn,
-.auteur-delete-btn {
+.auteur-delete-btn,
+.auteur-edit-btn {
     height: 30px;
 }
 
@@ -71,7 +92,8 @@
     }
 
     .auteur-add-btn,
-    .auteur-delete-btn {
+    .auteur-delete-btn,
+    .auteur-edit-btn {
         width: 100%;
     }
 }

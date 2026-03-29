@@ -1,15 +1,14 @@
-.app-footer {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 100;
+.app-navbar {
+    position: static;
+    z-index: auto;
     border-top: 1px solid var(--main-border-color);
+    border-bottom: 1px solid var(--main-border-color);
     background: var(--main-background-color);
     padding: 8px 12px;
+    margin-bottom: 12px;
 }
 
-.app-footer-content {
+.app-navbar-content {
     width: min(1000px, 100%);
     margin: 0 auto;
     display: flex;
@@ -18,20 +17,20 @@
     gap: 14px;
 }
 
-.app-footer-item {
+.app-navbar-item {
     display: flex;
     align-items: center;
     gap: 14px;
 }
 
-.app-footer-item:not(:last-child)::after {
+.app-navbar-item:not(:last-child)::after {
     content: "";
     width: 1px;
     height: 18px;
     border-right: 1px solid var(--main-border-color);
 }
 
-.app-footer-btn {
+.app-navbar-btn {
     border: none;
     background: transparent;
     color: var(--text-color);
@@ -43,19 +42,19 @@
     font-weight: 700;
 }
 
-.app-footer-btn.active {
+.app-navbar-btn.active {
     background: var(--gray-background-color);
     color: var(--primary-color);
 }
 
-.app-footer-empty {
+.app-navbar-empty {
     font-size: 12px;
     color: var(--text-gray-color);
     font-weight: 700;
 }
 
 @media (max-width: 600px) {
-    .app-footer-content {
+    .app-navbar-content {
         flex-wrap: wrap;
     }
 }

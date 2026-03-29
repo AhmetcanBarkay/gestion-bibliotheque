@@ -8,9 +8,15 @@ interface AuteurAvecCount extends Auteur {
 interface AuteursSectionProps {
     auteurRechercheInput: string;
     nouvelAuteurInput: string;
+    auteurEnEditionId: number | null;
+    nomAuteurEditionInput: string;
     auteursTries: AuteurAvecCount[];
     onAuteurRechercheChange: (value: string) => void;
     onNouvelAuteurChange: (value: string) => void;
+    onAuteurEnEditionNomChange: (value: string) => void;
+    onOuvrirEditionAuteur: (auteur: Auteur) => void;
+    onAnnulerEditionAuteur: () => void;
+    onModifierAuteur: () => void;
     onAjouterAuteur: () => void;
     onSupprimerAuteur: (auteurId: number) => void;
 }
@@ -18,9 +24,15 @@ interface AuteursSectionProps {
 function AuteursSection({
     auteurRechercheInput,
     nouvelAuteurInput,
+    auteurEnEditionId,
+    nomAuteurEditionInput,
     auteursTries,
     onAuteurRechercheChange,
     onNouvelAuteurChange,
+    onAuteurEnEditionNomChange,
+    onOuvrirEditionAuteur,
+    onAnnulerEditionAuteur,
+    onModifierAuteur,
     onAjouterAuteur,
     onSupprimerAuteur
 }: AuteursSectionProps) {
@@ -52,12 +64,31 @@ function AuteursSection({
                     auteursTries.map(auteur => (
                         <li key={auteur.id} className="auteur-item">
                             <div className="auteur-item-main">
-                                <span>{auteur.nom}</span>
+                                {
+                                    auteurEnEditionId === auteur.id ?
+                                        <input
+                                            className="auteur-input auteur-item-input biblio-input"
+                                            value={nomAuteurEditionInput}
+                                            onChange={(e) => onAuteurEnEditionNomChange(e.target.value)}
+                                            placeholder="Nouveau nom de l'auteur"
+                                        /> :
+                                        <span className="auteur-nom">{auteur.nom}</span>
+                                }
                                 <span className={auteur.livresCount > 0 ? "auteur-livre-count linked" : "auteur-livre-count"}>
                                     {auteur.livresCount} livre(s)
                                 </span>
                             </div>
-                            <button type="button" className="auteur-delete-btn biblio-btn biblio-btn-danger" onClick={() => onSupprimerAuteur(auteur.id)}>Supprimer</button>
+                            <div className="auteur-actions">
+                                {
+                                    auteurEnEditionId === auteur.id ?
+                                        <>
+                                            <button type="button" className="auteur-edit-btn biblio-btn" onClick={onAnnulerEditionAuteur}>Annuler</button>
+                                            <button type="button" className="auteur-edit-btn biblio-btn biblio-btn-success" onClick={onModifierAuteur}>Sauvegarder</button>
+                                        </> :
+                                        <button type="button" className="auteur-edit-btn biblio-btn" onClick={() => onOuvrirEditionAuteur(auteur)}>Modifier</button>
+                                }
+                                <button type="button" className="auteur-delete-btn biblio-btn biblio-btn-danger" onClick={() => onSupprimerAuteur(auteur.id)}>Supprimer</button>
+                            </div>
                         </li>
                     ))
                 }

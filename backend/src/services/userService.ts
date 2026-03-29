@@ -1,27 +1,74 @@
 import bcrypt from "bcrypt";
 import crypto from "crypto";
-import User from "../models/user";
-const users: User[] = [];
+import User from "../models/user.js";
+import type { Role } from "@shared/types/roles.js";
+import { query } from "../db/postgres.js";
 
-export function getUserByToken(token: string): User | undefined {
-    return users.find(u => u.token === token);
+interface DbUserRow {
+    id_utilisateur: number;
+    identifiant: string;
+    mdpbcrypt: string;
+    token_utilisateur: string;
+    role: Role;
 }
 
-export function generateToken(): string {
+function toUser(row: DbUserRow): User {
+    return {
+        id: row.id_utilisateur,
+        username: row.identifiant,
+        hashedPassword: row.mdpbcrypt,
+        token: row.token_utilisateur,
+        role: row.role,
+        date_created: new Date()
+    };
+}
+
+export async function getUserByToken(token: string): Promise<User | undefined> {
+    const result = await query<DbUserRow>(
+        "SELECT id_utilisateur, identifiant, mdpbcrypt, token_utilisateur, role FROM utilisateur WHERE token_utilisateur = $1 LIMIT 1",
+        [token]
+    );
+    if (result.rows.length === 0) return undefined;
+    return toUser(result.rows[0]);
+}
+
+export async function getUserById(id: number): Promise<User | undefined> {
+    const result = await query<DbUserRow>(
+        "SELECT id_utilisateur, identifiant, mdpbcrypt, token_utilisateur, role FROM utilisateur WHERE id_utilisateur = $1 LIMIT 1",
+        [id]
+    );
+    if (result.rows.length === 0) return undefined;
+    return toUser(result.rows[0]);
+}
+
+export function generateToken(length: number = 50): string {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     let token = "";
     const len = chars.length;
-    for (let i = 0; i < 64; i++) {
+    for (let i = 0; i < length; i++) {
         token += chars.charAt(crypto.randomInt(0, len));
     };
     return token;
 };
 
+export async function generateUniqueToken(length: number = 50): Promise<string> {
+    for (let i = 0; i < 20; i++) {
+        const token = generateToken(length);
+        const existing = await query<{ id_utilisateur: number }>(
+            "SELECT id_utilisateur FROM utilisateur WHERE token_utilisateur = $1 LIMIT 1",
+            [token]
+        );
+        if (existing.rows.length === 0) return token;
+    }
+
+    throw new Error("Impossible de générer un token utilisateur unique");
+}
+
 export function generatePassword(length: number = 12): string {
     const uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     const lowercase = "abcdefghijklmnopqrstuvwxyz";
     const digits = "0123456789";
-    const specials = "!@#$%^&*()-_=+[]{}";
+    const specials = "#!?*";
     const all = uppercase + lowercase + digits + specials;
 
     const chars: string[] = [
@@ -46,57 +93,57 @@ export function generatePassword(length: number = 12): string {
 };
 
 export function getUserByUsername(username: string): Promise<User | undefined> {
-    const searchUsername = username.toLowerCase();
-    return new Promise((resolve, reject) => {
-        resolve(users.find(u => u.username.toLowerCase() === searchUsername))
+    const searchUsername = username.trim().toLowerCase();
+    return query<DbUserRow>(
+        "SELECT id_utilisateur, identifiant, mdpbcrypt, token_utilisateur, role FROM utilisateur WHERE LOWER(identifiant) = $1 LIMIT 1",
+        [searchUsername]
+    ).then(result => {
+        if (result.rows.length === 0) return undefined;
+        return toUser(result.rows[0]);
     });
 };
 
-export function getUserByLogin(username: string, password: string): Promise<User | undefined> {
-    return new Promise(async (resolve, reject) => {
-        const user = await getUserByUsername(username);
-        if (!user) return resolve(undefined);
-        bcrypt.compare(password, user.hashedPassword, (err, result) => {
-            if (err) return reject(err);
-            if (result) return resolve(user);
-            resolve(undefined);
-        });
-    });
-};
+export async function getUserByLogin(username: string, password: string): Promise<User | undefined> {
+    const user = await getUserByUsername(username);
+    if (!user) return undefined;
+
+    const passwordMatches = await bcrypt.compare(password, user.hashedPassword);
+    return passwordMatches ? user : undefined;
+}
 
 type createUserResponse = "success" | "user_exists" | "error";
 interface createUserResult {
     status: createUserResponse;
     user?: User;
 };
-export function createUser(username: string, password: string, role: User['role']): Promise<createUserResult> {
-    return new Promise(async (resolve, reject) => {
+export async function createUser(username: string, password: string, role: User['role']): Promise<createUserResult> {
+    if (await getUserByUsername(username)) {
+        return { status: "user_exists" };
+    }
 
-        //check before attempting to create
-        if (await getUserByUsername(username)) return resolve({ status: "user_exists" });
-        try {
-            bcrypt.hash(password, 10, async (err, hash) => {
-                if (err) return resolve({ status: "error" });
+    try {
+        const hash = await bcrypt.hash(password, 10);
 
-                //check if another user with the same name has been created while waiting for the hash
-                if (await getUserByUsername(username)) return resolve({ status: "user_exists" });
+        // Re-check to avoid race with another request creating same username in parallel.
+        if (await getUserByUsername(username)) {
+            return { status: "user_exists" };
+        }
 
-                const newUser = {
-                    id: users.length + 1,
-                    username,
-                    hashedPassword: hash,
-                    token: generateToken(),
-                    role,
-                    date_created: new Date()
-                };
-                users.push(newUser);
-                resolve({ status: "success", user: newUser });
-            });
-        } catch {
-            resolve({ status: "error" });
-        };
-    });
-};
+        const token = await generateUniqueToken(50);
+        const inserted = await query<DbUserRow>(
+            "INSERT INTO utilisateur (identifiant, mdpbcrypt, token_utilisateur, role) VALUES ($1, $2, $3, $4) RETURNING id_utilisateur, identifiant, mdpbcrypt, token_utilisateur, role",
+            [username.trim(), hash, token, role]
+        );
+
+        const row = inserted.rows[0];
+        const newUser = toUser(row);
+        newUser.date_created = new Date();
+
+        return { status: "success", user: newUser };
+    } catch {
+        return { status: "error" };
+    }
+}
 
 export function registerClientUser(username: string, password: string): Promise<createUserResult> {
     return createUser(username, password, "client");
@@ -108,17 +155,19 @@ export function createBibliothecaireUser(username: string, password: string): Pr
 
 type deleteUserResult = "success" | "not_found" | "error";
 export function deleteUserById(id: number): Promise<deleteUserResult> {
-    const index = users.findIndex(u => u.id === id);
-    if (index === -1) return Promise.resolve("not_found");
-    users.splice(index, 1);
-    return Promise.resolve("success");
+    return query<{ id_utilisateur: number }>(
+        "DELETE FROM utilisateur WHERE id_utilisateur = $1 RETURNING id_utilisateur",
+        [id]
+    ).then(result => {
+        if (result.rows.length === 0) return "not_found";
+
+        return "success";
+    }).catch(() => "error");
 };
 
 export function getUsersByRole(role: User['role']): Promise<User[]> {
-    return new Promise((resolve, reject) => {
-        resolve(users.filter(u => u.role === role));
-    });
+    return query<DbUserRow>(
+        "SELECT id_utilisateur, identifiant, mdpbcrypt, token_utilisateur, role FROM utilisateur WHERE role = $1 ORDER BY id_utilisateur ASC",
+        [role]
+    ).then(result => result.rows.map(row => toUser(row)));
 };
-//comptes temporaire
-createUser("admin", "12345678", "admin");
-createUser("test", "12345678", "bibliothecaire"); 

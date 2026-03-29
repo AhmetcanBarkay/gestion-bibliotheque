@@ -18,6 +18,7 @@ export interface Emprunt {
     id: number;
     exemplaireId: number;
     userId: number;
+    username?: string;
     dateDebut: string;
     dateFin: string | null;
 }

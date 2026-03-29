@@ -43,7 +43,7 @@ function Authentification(props: AuthentificationProps) {
 
         const rules = getPasswordRulesErrors(value);
 
-        return rules.length === 0 ? null : `Votre mot de passe dois avoir :\n- ${rules.join("\n- ")}`;
+        return rules.length === 0 ? null : `Votre mot de passe doit avoir :\n- ${rules.join("\n- ")}`;
     };
 
     const switchMode = (newMode: "login" | "register") => {

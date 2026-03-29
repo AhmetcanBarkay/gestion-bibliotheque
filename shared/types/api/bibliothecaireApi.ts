@@ -10,6 +10,7 @@ export interface exemplaireItem {
     id: number;
     estEmprunte: boolean;
     emprunteParUserId?: number;
+    emprunteParUsername?: string;
 }
 
 export interface livreItem {
@@ -33,6 +34,14 @@ export interface corpsCreationAuteur {
 
 export interface reponseCreationAuteur extends baseResponse {
     id?: number;
+}
+
+export interface corpsModificationAuteur {
+    auteurId: number;
+    nom: string;
+}
+
+export interface reponseModificationAuteur extends baseResponse {
 }
 
 export interface corpsSuppressionAuteur {
@@ -78,4 +87,41 @@ export interface corpsSuppressionExemplaire {
 
 export interface reponseSuppressionExemplaire extends baseResponse {
     emprunteParUserId?: number;
+    emprunteParUsername?: string;
+}
+
+export interface empruntBibliothecaireItem {
+    id: number;
+    userId: number;
+    username: string;
+    exemplaireId: number;
+    livreId: number;
+    titreLivre: string;
+    dateDebut: string;
+    dateRetourPrevue: string;
+    dateRetourEffectif: string | null;
+}
+
+export interface reponseEmpruntsBibliothecaire extends baseResponse {
+    empruntsActifs?: empruntBibliothecaireItem[];
+    empruntsEnRetard?: empruntBibliothecaireItem[];
+}
+
+export interface corpsAjoutEmpruntBibliothecaire {
+    codeSerieAbonnement: string;
+    exemplaireId: number;
+}
+
+export interface reponseAjoutEmpruntBibliothecaire extends baseResponse {
+    id?: number;
+    livresEnRetard?: Array<{
+        livreId: number;
+        exemplaireId: number;
+        titreLivre: string;
+        dateRetourPrevue: string;
+    }>;
+}
+
+export interface corpsConfirmationRetourEmprunt {
+    empruntId: number;
 }

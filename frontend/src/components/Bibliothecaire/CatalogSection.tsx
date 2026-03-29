@@ -31,6 +31,7 @@ interface CatalogSectionProps {
     onSupprimerLivre: (livreId: number) => void;
     onAjouterExemplaire: (livreId: number) => void;
     onSupprimerExemplaire: (exemplaireId: number) => void;
+    onOuvrirAuteursRaccourci: () => void;
 }
 
 interface BlocSelectionAuteursProps {
@@ -59,7 +60,7 @@ function BlocSelectionAuteurs({
                 placeholder={placeholderRecherche}
             />
 
-            <p className="selector-label">Selectionner un ou plusieurs auteurs</p>
+            <p className="selector-label">Sélectionner un ou plusieurs auteurs</p>
             <div className="auteur-button-list">
                 {
                     auteurs.map(auteur => (
@@ -104,7 +105,8 @@ function CatalogSection({
     onToggleMenuLivre,
     onSupprimerLivre,
     onAjouterExemplaire,
-    onSupprimerExemplaire
+    onSupprimerExemplaire,
+    onOuvrirAuteursRaccourci
 }: CatalogSectionProps) {
     const [ajoutLivreOuvert, setAjoutLivreOuvert] = useState(false);
 
@@ -211,10 +213,10 @@ function CatalogSection({
                                                                 return (
                                                                     <li key={exemplaire.id} className={estEmprunte ? "exemplaire-item borrowed" : "exemplaire-item"}>
                                                                         <div>
-                                                                            <p>Exemplaire #{exemplaire.id}</p>
+                                                                            <p>Exemplaire nº{exemplaire.id}</p>
                                                                             {
                                                                                 estEmprunte ?
-                                                                                    <p className="exemplaire-state">Emprunté (utilisateur #{empruntActif.userId})</p> :
+                                                                                    <p className="exemplaire-state">Emprunté (Utilisateur : {empruntActif.username || "inconnu"})</p> :
                                                                                     <p className="exemplaire-state">Disponible</p>
                                                                             }
                                                                         </div>
@@ -251,6 +253,15 @@ function CatalogSection({
                     ajoutLivreOuvert ?
                         <div className="ajout-livre-section biblio-surface">
                             <h3>Ajouter un nouveau livre</h3>
+                            <div className="ajout-livre-raccourcis">
+                                <button
+                                    type="button"
+                                    className="ajout-livre-raccourci-btn biblio-btn biblio-btn-info biblio-btn-pill"
+                                    onClick={onOuvrirAuteursRaccourci}
+                                >
+                                    + Ajouter un auteur
+                                </button>
+                            </div>
                             <input
                                 className="livre-input biblio-input"
                                 value={livreTitreInput}

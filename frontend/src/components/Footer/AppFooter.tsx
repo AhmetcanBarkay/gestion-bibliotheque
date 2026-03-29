@@ -1,36 +1,36 @@
 import "./AppFooter.css";
 
-export interface FooterAction<K extends string> {
+export interface NavbarAction<K extends string> {
     key: K;
     label: string;
 }
 
-interface AppFooterProps<K extends string> {
-    actions: FooterAction<K>[];
+interface AppNavbarProps<K extends string> {
+    actions: NavbarAction<K>[];
     activeKey?: K;
     onSelect?: (key: K) => void;
 }
 
-function AppFooter<K extends string>({ actions, activeKey, onSelect }: AppFooterProps<K>) {
+function AppNavbar<K extends string>({ actions, activeKey, onSelect }: AppNavbarProps<K>) {
     return (
-        <footer className="app-footer">
-            <div className="app-footer-content">
+        <nav className="app-navbar" aria-label="Navigation principale">
+            <div className="app-navbar-content">
                 {
                     actions.length > 0 ? actions.map(action => (
-                        <div key={action.key} className="app-footer-item">
+                        <div key={action.key} className="app-navbar-item">
                             <button
                                 type="button"
-                                className={activeKey === action.key ? "app-footer-btn active" : "app-footer-btn"}
+                                className={activeKey === action.key ? "app-navbar-btn active" : "app-navbar-btn"}
                                 onClick={() => onSelect?.(action.key)}
                             >
                                 {action.label}
                             </button>
                         </div>
-                    )) : <span className="app-footer-empty">Menu</span>
+                    )) : <span className="app-navbar-empty">Menu</span>
                 }
             </div>
-        </footer>
+        </nav>
     );
 }
 
-export default AppFooter;
+export default AppNavbar;

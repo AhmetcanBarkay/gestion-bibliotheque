@@ -1,18 +1,33 @@
 import { Request, Response, NextFunction } from 'express';
 import { getUserByToken } from '../services/userService.js';
+import { API_MESSAGES } from '@shared/constants/messages.js';
 
-export function requireAuth(req: Request, res: Response, next: NextFunction) {
+type RoleAutorise = 'admin' | 'bibliothecaire' | 'client';
+
+function requireRole(...rolesAutorises: RoleAutorise[]) {
+    return (req: Request, res: Response, next: NextFunction) => {
+        if (!req.user || !rolesAutorises.includes(req.user.role as RoleAutorise)) {
+            return res.status(403).json({
+                success: false,
+                reason: API_MESSAGES.ACCESS_DENIED
+            });
+        }
+        next();
+    };
+}
+
+export async function requireAuth(req: Request, res: Response, next: NextFunction) {
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(401).json({
             success: false,
-            reason: 'Authentification requis'
+            reason: API_MESSAGES.AUTHENTICATION_REQUIRED
         });
     }
 
     const token = authHeader.split(' ')[1];
-    const user = getUserByToken(token);
+    const user = await getUserByToken(token);
 
     if (!user) {
         return res.status(401).json({
@@ -26,23 +41,6 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
     next();
 }
 
-export function requireAdmin(req: Request, res: Response, next: NextFunction) {
-
-    if (!req.user || req.user.role !== 'admin') {
-        return res.status(403).json({
-            success: false,
-            reason: 'Accès refusé'
-        });
-    }
-    next();
-};
-
-export function requireBibliothecaire(req: Request, res: Response, next: NextFunction) {
-    if (!req.user || (req.user.role !== 'bibliothecaire' && req.user.role !== 'admin')) {
-        return res.status(403).json({
-            success: false,
-            reason: 'Accès refusé'
-        });
-    }
-    next();
-};
+export const requireAdmin = requireRole('admin');
+export const requireBibliothecaire = requireRole('bibliothecaire', 'admin');
+export const requireClient = requireRole('client');
