@@ -1,6 +1,9 @@
 import type { Request, Response } from "express";
 import type {
     corpsCreationAuteur,
+    corpsModificationAuteur,
+    corpsAjoutEmpruntBibliothecaire,
+    corpsConfirmationRetourEmprunt,
     corpsCreationExemplaire,
     corpsCreationLivre,
     corpsMiseAJourLivre,
@@ -10,18 +13,25 @@ import type {
     reponseAuteurs,
     reponseCatalogue,
     reponseCreationAuteur,
+    reponseModificationAuteur,
     reponseCreationExemplaire,
     reponseCreationLivre,
+    reponseEmpruntsBibliothecaire,
+    reponseAjoutEmpruntBibliothecaire,
     reponseSuppressionAuteur,
     reponseSuppressionExemplaire
 } from "@shared/types/api/bibliothecaireApi.js";
 import type { baseResponse } from "@shared/types/api/baseApi.js";
 import {
     ajouterAuteur,
+    modifierAuteur,
+    ajouterEmpruntBibliothecaire,
     ajouterExemplaire,
     ajouterLivre,
+    confirmerRetourEmprunt,
     listerAuteurs,
     listerCatalogue,
+    listerEmpruntsBibliothecaire,
     modifierLivre,
     supprimerAuteur,
     supprimerExemplaire,
@@ -67,6 +77,31 @@ export async function ajouterAuteurControleur(req: Request<{}, reponseCreationAu
     }
 }
 
+export async function modifierAuteurControleur(req: Request<{}, reponseModificationAuteur, corpsModificationAuteur>, res: Response<reponseModificationAuteur>) {
+    try {
+        const { auteurId, nom } = req.body;
+        if (typeof auteurId !== "number") {
+            return res.status(400).json({ success: false, reason: "Identifiant auteur invalide" });
+        }
+        if (!nom || nom.trim().length === 0) {
+            return res.status(400).json({ success: false, reason: "Nom d'auteur requis" });
+        }
+
+        const result = await modifierAuteur({ auteurId, nom });
+        if (result === "introuvable") {
+            return res.status(404).json({ success: false, reason: "Auteur introuvable" });
+        }
+        if (result === "existe") {
+            return res.status(409).json({ success: false, reason: "Auteur déjà existant" });
+        }
+
+        return res.status(200).json({ success: true });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ success: false, reason: "Erreur interne" });
+    }
+}
+
 export async function supprimerAuteurControleur(req: Request<{}, reponseSuppressionAuteur, corpsSuppressionAuteur>, res: Response<reponseSuppressionAuteur>) {
     try {
         const { auteurId, force } = req.body;
@@ -101,8 +136,8 @@ export async function ajouterLivreControleur(req: Request<{}, reponseCreationLiv
         if (!titre || titre.trim().length === 0) {
             return res.status(400).json({ success: false, reason: "Titre requis" });
         }
-        if (!Array.isArray(auteurIds) || auteurIds.length === 0) {
-            return res.status(400).json({ success: false, reason: "Au moins un auteur requis" });
+        if (!Array.isArray(auteurIds)) {
+            return res.status(400).json({ success: false, reason: "Liste des auteurs invalide" });
         }
 
         const result = await ajouterLivre({ titre, auteurIds });
@@ -126,8 +161,8 @@ export async function modifierLivreControleur(req: Request<{}, baseResponse, cor
         if (!titre || titre.trim().length === 0) {
             return res.status(400).json({ success: false, reason: "Titre requis" });
         }
-        if (!Array.isArray(auteurIds) || auteurIds.length === 0) {
-            return res.status(400).json({ success: false, reason: "Au moins un auteur requis" });
+        if (!Array.isArray(auteurIds)) {
+            return res.status(400).json({ success: false, reason: "Liste des auteurs invalide" });
         }
 
         const result = await modifierLivre({ id, titre, auteurIds });
@@ -202,8 +237,86 @@ export async function supprimerExemplaireControleur(req: Request<{}, reponseSupp
             return res.status(409).json({
                 success: false,
                 reason: "Exemplaire emprunté, suppression impossible",
-                emprunteParUserId: result.emprunteParUserId
+                emprunteParUserId: result.emprunteParUserId,
+                emprunteParUsername: result.emprunteParUsername
             });
+        }
+
+        return res.status(200).json({ success: true });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ success: false, reason: "Erreur interne" });
+    }
+}
+
+export async function obtenirEmpruntsControleur(req: Request<{}, reponseEmpruntsBibliothecaire>, res: Response<reponseEmpruntsBibliothecaire>) {
+    try {
+        const data = await listerEmpruntsBibliothecaire();
+        return res.status(200).json({
+            success: true,
+            empruntsActifs: data.empruntsActifs,
+            empruntsEnRetard: data.empruntsEnRetard
+        });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ success: false, reason: "Erreur interne" });
+    }
+}
+
+export async function ajouterEmpruntControleur(req: Request<{}, reponseAjoutEmpruntBibliothecaire, corpsAjoutEmpruntBibliothecaire>, res: Response<reponseAjoutEmpruntBibliothecaire>) {
+    try {
+        const { codeSerieAbonnement, exemplaireId } = req.body;
+        if (typeof codeSerieAbonnement !== "string" || codeSerieAbonnement.trim().length === 0 || typeof exemplaireId !== "number") {
+            return res.status(400).json({ success: false, reason: "Données invalides" });
+        }
+
+        const result = await ajouterEmpruntBibliothecaire({ codeSerieAbonnement, exemplaireId });
+        if (result.status === "abonnement_invalide") {
+            return res.status(400).json({ success: false, reason: "Code série invalide ou abonnement inactif" });
+        }
+        if (result.status === "exemplaire_introuvable") {
+            return res.status(404).json({ success: false, reason: "Exemplaire introuvable" });
+        }
+        if (result.status === "deja_emprunte") {
+            return res.status(409).json({ success: false, reason: "Exemplaire déjà emprunté" });
+        }
+        if (result.status === "limite_emprunts_atteinte") {
+            return res.status(409).json({
+                success: false,
+                reason: "Emprunt impossible: limite de emprunts atteinte pour cet utilisateur"
+            });
+        }
+        if (result.status === "deja_un_emprunt_du_livre") {
+            return res.status(409).json({
+                success: false,
+                reason: "Emprunt impossible: l'utilisateur est déjà en possession d'un exemplaire de ce livre"
+            });
+        }
+        if (result.status === "emprunts_en_retard") {
+            return res.status(409).json({
+                success: false,
+                reason: "Emprunt impossible: utilisateur avec des emprunt(s) en retard",
+                livresEnRetard: result.livresEnRetard
+            });
+        }
+
+        return res.status(201).json({ success: true, id: result.id });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ success: false, reason: "Erreur interne" });
+    }
+}
+
+export async function confirmerRetourEmpruntControleur(req: Request<{}, baseResponse, corpsConfirmationRetourEmprunt>, res: Response<baseResponse>) {
+    try {
+        const { empruntId } = req.body;
+        if (typeof empruntId !== "number") {
+            return res.status(400).json({ success: false, reason: "Identifiant emprunt invalide" });
+        }
+
+        const result = await confirmerRetourEmprunt(empruntId);
+        if (result === "introuvable") {
+            return res.status(404).json({ success: false, reason: "Emprunt introuvable" });
         }
 
         return res.status(200).json({ success: true });

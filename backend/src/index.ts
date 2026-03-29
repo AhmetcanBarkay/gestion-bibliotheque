@@ -4,10 +4,10 @@ import cors from 'cors';
 import auth from './routes/auth.js';
 import admin from './routes/admin.js';
 import bibliothecaire from './routes/bibliothecaire.js';
+import client from './routes/client.js';
+import { initDatabase } from './db/initDatabase.js';
 
-import dotenv from 'dotenv';
-import { requireAdmin, requireAuth, requireBibliothecaire } from './middlewares/authMiddleware.js';
-dotenv.config();
+import { requireAdmin, requireAuth, requireBibliothecaire, requireClient } from './middlewares/authMiddleware.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -21,6 +21,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/auth', auth);
 app.use('/admin', requireAuth, requireAdmin, admin);
 app.use('/bibliothecaire', requireAuth, requireBibliothecaire, bibliothecaire);
+app.use('/client', requireAuth, requireClient, client);
 
 // non trouvée
 app.use((req: Request, res: Response) => {
@@ -29,6 +30,14 @@ app.use((req: Request, res: Response) => {
     });
 });
 
-app.listen(PORT, () => {
-    console.log(`Serveur local démarré sur le port ${PORT}`);
+async function startServer() {
+    await initDatabase();
+    app.listen(PORT, () => {
+        console.log(`Serveur local démarré sur le port ${PORT}`);
+    });
+}
+
+startServer().catch((error) => {
+    console.error('Erreur de demarrage du serveur:', error);
+    process.exit(1);
 });

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import Authentification from './components/Authentication/Authentication'
 import Loading from './components/Loading';
-import { apiHelper } from './api/apiHelper';
+import { AUTH_INVALID_EVENT, apiHelper } from './api/apiHelper';
 import type { verifyTokenBody, verifyTokenResponse } from '@shared/types/api/authApi';
 import type { Role } from '@shared/types/roles';
 import Authenticated from './components/Authenticated/Authenticated';
@@ -12,6 +12,25 @@ function App() {
   const [isChecking, setIsChecking] = useState(true)
   const [role, setRole] = useState<Role | null>(null)
   const [username, setUsername] = useState<string | null>(null)
+
+  const forceLogout = () => {
+    localStorage.removeItem("token");
+    setLoggedIn(false);
+    setRole(null);
+    setUsername(null);
+    setIsChecking(false);
+  };
+
+  useEffect(() => {
+    const onAuthInvalid = () => {
+      forceLogout();
+    };
+
+    window.addEventListener(AUTH_INVALID_EVENT, onAuthInvalid);
+    return () => {
+      window.removeEventListener(AUTH_INVALID_EVENT, onAuthInvalid);
+    };
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -33,7 +52,7 @@ function App() {
             setRole(apiResponse.role || null);
             setUsername(apiResponse.username || null);
           } else {
-            localStorage.removeItem("token");
+            forceLogout();
           };
         });
 
@@ -46,10 +65,7 @@ function App() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    setLoggedIn(false);
-    setRole(null);
-    setUsername(null);
+    forceLogout();
   };
 
   return (

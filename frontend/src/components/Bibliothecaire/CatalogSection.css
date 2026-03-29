@@ -211,6 +211,19 @@
     gap: 6px;
 }
 
+.ajout-livre-raccourcis {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ajout-livre-raccourci-btn {
+    width: fit-content;
+    height: 30px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
 .ajout-livre-section h3 {
     color: var(--text-color);
     font-size: 15px;
@@ -295,6 +308,10 @@
     }
 
     .button-component.livre-add-toggle-btn {
+        width: 100%;
+    }
+
+    .ajout-livre-raccourci-btn {
         width: 100%;
     }
 

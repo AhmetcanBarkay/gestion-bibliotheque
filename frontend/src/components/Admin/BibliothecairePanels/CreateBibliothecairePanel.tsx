@@ -13,6 +13,7 @@ function CreateBibliothecairePanel({
     onStatusChange
 }: CreateBibliothecairePanelProps) {
     const [username, setUsername] = useState("");
+    const [createdCredentials, setCreatedCredentials] = useState<{ username: string; password: string } | null>(null);
     const [createInputKey, setCreateInputKey] = useState(0);
     const [createErrors, setCreateErrors] = useState(new Set<string>());
 
@@ -32,6 +33,7 @@ function CreateBibliothecairePanel({
 
     const handleCreate = async (setIsLoading: (loading: boolean) => void) => {
         onStatusChange("");
+        setCreatedCredentials(null);
         setIsLoading(true);
 
         const response = await apiHelper.post<createBibliothecaireBody, createBibliothecaireResponse>("/admin/bibliothecaire/create", {
@@ -51,10 +53,21 @@ function CreateBibliothecairePanel({
             return;
         }
 
-        onStatusChange(`Compte bibliothécaire créé:\nIdentifiant: ${username}\nMot de passe: ${data.generatedPassword || "non disponible"}`);
+        const generatedPassword = data.generatedPassword || "non disponible";
+        setCreatedCredentials({ username, password: generatedPassword });
+        onStatusChange("Compte bibliothécaire créé");
         setUsername("");
         setCreateInputKey(prev => prev + 1);
         setIsLoading(false);
+    };
+
+    const copierTexte = async (texte: string, succesMessage: string) => {
+        try {
+            await navigator.clipboard.writeText(texte);
+            onStatusChange(succesMessage);
+        } catch {
+            onStatusChange("Impossible de copier dans le presse-papiers");
+        }
     };
 
     return (
@@ -80,6 +93,43 @@ function CreateBibliothecairePanel({
             >
                 Ajouter
             </Button>
+
+            {
+                createdCredentials ?
+                    <div className="admin-created-credentials" aria-live="polite">
+                        <div className="admin-created-credentials-row">
+                            <span className="admin-created-credentials-label">Identifiant</span>
+                            <span className="admin-created-credentials-value">{createdCredentials.username}</span>
+                            <button
+                                type="button"
+                                className="admin-copy-btn"
+                                onClick={() => copierTexte(createdCredentials.username, "Identifiant copié")}
+                            >
+                                Copier
+                            </button>
+                        </div>
+
+                        <div className="admin-created-credentials-row">
+                            <span className="admin-created-credentials-label">Mot de passe</span>
+                            <span className="admin-created-credentials-value">{createdCredentials.password}</span>
+                            <button
+                                type="button"
+                                className="admin-copy-btn"
+                                onClick={() => copierTexte(createdCredentials.password, "Mot de passe copié")}
+                            >
+                                Copier
+                            </button>
+                        </div>
+
+                        <button
+                            type="button"
+                            className="admin-copy-btn admin-copy-btn-wide"
+                            onClick={() => copierTexte(`Identifiant: ${createdCredentials.username}\nMot de passe: ${createdCredentials.password}`, "Identifiant + mot de passe copiés")}
+                        >
+                            Copier les deux
+                        </button>
+                    </div> : null
+            }
         </div>
     );
 }

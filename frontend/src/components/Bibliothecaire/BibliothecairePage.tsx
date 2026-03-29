@@ -1,15 +1,18 @@
 import { useEffect, useState } from "react";
-import AppFooter from "../Footer/AppFooter";
-import type { FooterAction } from "../Footer/AppFooter";
 import CatalogSection from "./CatalogSection";
 import AuteursSection from "./AuteursSection";
 import EmpruntsSection from "./EmpruntsSection";
 import type { Auteur, Emprunt, Exemplaire, Livre } from "./types";
-import { apiHelper } from "../../api/apiHelper";
+import { createApiReader } from "../../api/apiRequest.js";
+import { API_MESSAGES } from "@shared/constants/messages.js";
+import type { baseResponse } from "@shared/types/api/baseApi.js";
 import type {
+    corpsAjoutEmpruntBibliothecaire,
+    corpsConfirmationRetourEmprunt,
     corpsCreationAuteur,
     corpsCreationExemplaire,
     corpsCreationLivre,
+    corpsModificationAuteur,
     corpsMiseAJourLivre,
     corpsSuppressionAuteur,
     corpsSuppressionExemplaire,
@@ -19,61 +22,49 @@ import type {
     reponseCreationAuteur,
     reponseCreationExemplaire,
     reponseCreationLivre,
+    reponseModificationAuteur,
+    reponseAjoutEmpruntBibliothecaire,
+    reponseEmpruntsBibliothecaire,
     reponseSuppressionAuteur,
     reponseSuppressionExemplaire
 } from "@shared/types/api/bibliothecaireApi.js";
 import "./BibliothecairePage.css";
 
-type BibliothecaireMenuKey = "catalogue" | "auteurs" | "emprunts";
-type ReponseAvecSucces = { success: boolean; reason?: string };
+export type BibliothecaireMenuKey = "catalogue" | "auteurs" | "emprunts";
 
-const MESSAGE_REPONSE_INVALIDE = "Reponse invalide du serveur";
-const MESSAGE_ERREUR_INCONNUE = "Erreur inconnue";
+interface BibliothecairePageProps {
+    activeMenu: BibliothecaireMenuKey;
+    onMenuChange: (key: BibliothecaireMenuKey) => void;
+}
 
-function BibliothecairePage() {
-    const [activeMenu, setActiveMenu] = useState<BibliothecaireMenuKey>("catalogue");
+function BibliothecairePage({ activeMenu, onMenuChange }: BibliothecairePageProps) {
     const [statusMessage, setStatusMessage] = useState("");
 
     const [auteurs, setAuteurs] = useState<Auteur[]>([]);
     const [livres, setLivres] = useState<Livre[]>([]);
     const [exemplaires, setExemplaires] = useState<Exemplaire[]>([]);
     const [emprunts, setEmprunts] = useState<Emprunt[]>([]);
+    const [empruntsActifsBib, setEmpruntsActifsBib] = useState<reponseEmpruntsBibliothecaire["empruntsActifs"]>([]);
+    const [empruntsRetardBib, setEmpruntsRetardBib] = useState<reponseEmpruntsBibliothecaire["empruntsEnRetard"]>([]);
 
     const [livreTitreInput, setLivreTitreInput] = useState("");
     const [auteurIdsSelectionnes, setAuteurIdsSelectionnes] = useState<number[]>([]);
     const [auteurRechercheInput, setAuteurRechercheInput] = useState("");
     const [livreAuteurRechercheInput, setLivreAuteurRechercheInput] = useState("");
     const [nouvelAuteurInput, setNouvelAuteurInput] = useState("");
+    const [auteurEnEditionId, setAuteurEnEditionId] = useState<number | null>(null);
+    const [nomAuteurEditionInput, setNomAuteurEditionInput] = useState("");
 
     const [menuLivreOuvertId, setMenuLivreOuvertId] = useState<number | null>(null);
     const [livreEnEditionId, setLivreEnEditionId] = useState<number | null>(null);
     const [editionTitreInput, setEditionTitreInput] = useState("");
     const [editionAuteurIdsSelectionnes, setEditionAuteurIdsSelectionnes] = useState<number[]>([]);
     const [editionAuteurRechercheInput, setEditionAuteurRechercheInput] = useState("");
+    const [livreEmpruntSelectionneId, setLivreEmpruntSelectionneId] = useState<number | null>(null);
+    const [exemplaireEmpruntSelectionneId, setExemplaireEmpruntSelectionneId] = useState<number | null>(null);
+    const [codeSerieAbonnementInput, setCodeSerieAbonnementInput] = useState("");
 
-    const actions: FooterAction<BibliothecaireMenuKey>[] = [
-        { key: "catalogue", label: "Catalogue" },
-        { key: "auteurs", label: "Auteurs" },
-        { key: "emprunts", label: "Emprunts" }
-    ];
-
-    const lireGet = async <T extends ReponseAvecSucces>(url: string): Promise<T | null> => {
-        const data = (await apiHelper.get<T>(url)).data;
-        if (!data) {
-            setStatusMessage(MESSAGE_REPONSE_INVALIDE);
-            return null;
-        }
-        return data;
-    };
-
-    const lirePost = async <Req, Res extends ReponseAvecSucces>(url: string, payload: Req): Promise<Res | null> => {
-        const data = (await apiHelper.post<Req, Res>(url, payload)).data;
-        if (!data) {
-            setStatusMessage(MESSAGE_REPONSE_INVALIDE);
-            return null;
-        }
-        return data;
-    };
+    const { lireGet, lirePost } = createApiReader(setStatusMessage);
 
     const reinitialiserEdition = () => {
         setLivreEnEditionId(null);
@@ -82,13 +73,15 @@ function BibliothecairePage() {
         setEditionAuteurRechercheInput("");
     };
 
-    const validerLivre = (titre: string, idsAuteurs: number[]): boolean => {
+    useEffect(() => {
+        setMenuLivreOuvertId(null);
+        reinitialiserEdition();
+        setStatusMessage("");
+    }, [activeMenu]);
+
+    const validerLivre = (titre: string): boolean => {
         if (titre.trim().length === 0) {
             setStatusMessage("Titre requis");
-            return false;
-        }
-        if (idsAuteurs.length === 0) {
-            setStatusMessage("Au moins un auteur requis");
             return false;
         }
         return true;
@@ -121,6 +114,7 @@ function BibliothecairePage() {
                         id: idEmpruntSynth++,
                         exemplaireId: exemplaire.id,
                         userId: exemplaire.emprunteParUserId,
+                        username: exemplaire.emprunteParUsername,
                         dateDebut: "",
                         dateFin: null
                     });
@@ -145,10 +139,24 @@ function BibliothecairePage() {
         setAuteurs(data.auteurs.map(auteur => ({ id: auteur.id, nom: auteur.nom })));
     };
 
+    const chargerEmpruntsBibliothecaire = async () => {
+        const data = await lireGet<reponseEmpruntsBibliothecaire>("/bibliothecaire/emprunts");
+        if (!data) return;
+
+        if (!data.success) {
+            setStatusMessage(data.reason || "Erreur de chargement des emprunts");
+            return;
+        }
+
+        setEmpruntsActifsBib(data.empruntsActifs || []);
+        setEmpruntsRetardBib(data.empruntsEnRetard || []);
+    };
+
     useEffect(() => {
         (async () => {
             await chargerCatalogue();
             await chargerAuteurs();
+            await chargerEmpruntsBibliothecaire();
         })();
     }, []);
 
@@ -175,13 +183,52 @@ function BibliothecairePage() {
         if (!data) return;
 
         if (!data.success) {
-            setStatusMessage(data.reason || MESSAGE_ERREUR_INCONNUE);
+            setStatusMessage(data.reason || API_MESSAGES.UNKNOWN_ERROR);
             return;
         }
 
         setNouvelAuteurInput("");
         await chargerAuteurs();
-        setStatusMessage("Auteur ajoute");
+        setStatusMessage("Auteur ajouté");
+    };
+
+    const handleOuvrirEditionAuteur = (auteur: Auteur) => {
+        setAuteurEnEditionId(auteur.id);
+        setNomAuteurEditionInput(auteur.nom);
+        setStatusMessage("");
+    };
+
+    const handleAnnulerEditionAuteur = () => {
+        setAuteurEnEditionId(null);
+        setNomAuteurEditionInput("");
+        setStatusMessage("");
+    };
+
+    const handleModifierAuteur = async () => {
+        if (auteurEnEditionId === null) return;
+
+        setStatusMessage("");
+        const nom = nomAuteurEditionInput.trim();
+        if (nom.length === 0) {
+            setStatusMessage("Nom d'auteur requis");
+            return;
+        }
+
+        const data = await lirePost<corpsModificationAuteur, reponseModificationAuteur>("/bibliothecaire/auteur/modifier", {
+            auteurId: auteurEnEditionId,
+            nom
+        });
+        if (!data) return;
+
+        if (!data.success) {
+            setStatusMessage(data.reason || API_MESSAGES.UNKNOWN_ERROR);
+            return;
+        }
+
+        await chargerAuteurs();
+        await chargerCatalogue();
+        handleAnnulerEditionAuteur();
+        setStatusMessage("Auteur modifié");
     };
 
     const handleSupprimerAuteur = async (auteurId: number) => {
@@ -196,7 +243,7 @@ function BibliothecairePage() {
         if (!firstData.success && firstData.besoinConfirmation) {
             const nomAuteur = auteurs.find(auteur => auteur.id === auteurId)?.nom || `#${auteurId}`;
             const confirmed = window.confirm(
-                `L'auteur ${nomAuteur} est lie a ${firstData.livresLiesCount || 0} livre(s). Supprimer l'auteur retirera ce lien dans ces livres. Continuer ?`
+                `L'auteur ${nomAuteur} est lié à ${firstData.livresLiesCount || 0} livre(s). Supprimer l'auteur retirera ce lien dans ces livres. Continuer ?`
             );
             if (!confirmed) {
                 return;
@@ -208,11 +255,11 @@ function BibliothecairePage() {
             });
             if (!forcedData) return;
             if (!forcedData.success) {
-                setStatusMessage(forcedData.reason || MESSAGE_ERREUR_INCONNUE);
+                setStatusMessage(forcedData.reason || API_MESSAGES.UNKNOWN_ERROR);
                 return;
             }
         } else if (!firstData.success) {
-            setStatusMessage(firstData.reason || MESSAGE_ERREUR_INCONNUE);
+            setStatusMessage(firstData.reason || API_MESSAGES.UNKNOWN_ERROR);
             return;
         }
 
@@ -220,13 +267,16 @@ function BibliothecairePage() {
         await chargerAuteurs();
         setAuteurIdsSelectionnes(prev => prev.filter(id => id !== auteurId));
         setEditionAuteurIdsSelectionnes(prev => prev.filter(id => id !== auteurId));
-        setStatusMessage("Auteur supprime");
+        if (auteurEnEditionId === auteurId) {
+            handleAnnulerEditionAuteur();
+        }
+        setStatusMessage("Auteur supprimé");
     };
 
     const handleAjouterLivre = async () => {
         setStatusMessage("");
         const titre = livreTitreInput.trim();
-        if (!validerLivre(titre, auteurIdsSelectionnes)) return;
+        if (!validerLivre(titre)) return;
 
         const data = await lirePost<corpsCreationLivre, reponseCreationLivre>("/bibliothecaire/livre/ajouter", {
             titre,
@@ -235,14 +285,14 @@ function BibliothecairePage() {
         if (!data) return;
 
         if (!data.success) {
-            setStatusMessage(data.reason || MESSAGE_ERREUR_INCONNUE);
+            setStatusMessage(data.reason || API_MESSAGES.UNKNOWN_ERROR);
             return;
         }
 
         await chargerCatalogue();
         setLivreTitreInput("");
         setAuteurIdsSelectionnes([]);
-        setStatusMessage("Livre ajoute");
+        setStatusMessage("Livre ajouté");
     };
 
     const handleOuvrirEdition = (livre: Livre) => {
@@ -258,9 +308,9 @@ function BibliothecairePage() {
 
         setStatusMessage("");
         const titre = editionTitreInput.trim();
-        if (!validerLivre(titre, editionAuteurIdsSelectionnes)) return;
+        if (!validerLivre(titre)) return;
 
-        const data = await lirePost<corpsMiseAJourLivre, ReponseAvecSucces>("/bibliothecaire/livre/modifier", {
+        const data = await lirePost<corpsMiseAJourLivre, baseResponse>("/bibliothecaire/livre/modifier", {
             id: livreEnEditionId,
             titre,
             auteurIds: editionAuteurIdsSelectionnes
@@ -268,22 +318,22 @@ function BibliothecairePage() {
         if (!data) return;
 
         if (!data.success) {
-            setStatusMessage(data.reason || MESSAGE_ERREUR_INCONNUE);
+            setStatusMessage(data.reason || API_MESSAGES.UNKNOWN_ERROR);
             return;
         }
 
         await chargerCatalogue();
         reinitialiserEdition();
-        setStatusMessage("Livre modifie");
+        setStatusMessage("Livre modifié");
     };
 
     const handleSupprimerLivre = async (livreId: number) => {
         setStatusMessage("");
-        const data = await lirePost<corpsSuppressionLivre, ReponseAvecSucces>("/bibliothecaire/livre/supprimer", { id: livreId });
+        const data = await lirePost<corpsSuppressionLivre, baseResponse>("/bibliothecaire/livre/supprimer", { id: livreId });
         if (!data) return;
 
         if (!data.success) {
-            setStatusMessage(data.reason || MESSAGE_ERREUR_INCONNUE);
+            setStatusMessage(data.reason || API_MESSAGES.UNKNOWN_ERROR);
             setMenuLivreOuvertId(null);
             return;
         }
@@ -291,7 +341,7 @@ function BibliothecairePage() {
         await chargerCatalogue();
         await chargerAuteurs();
         setMenuLivreOuvertId(null);
-        setStatusMessage("Livre supprime");
+        setStatusMessage("Livre supprimé");
     };
 
     const handleAjouterExemplaire = async (livreId: number) => {
@@ -300,13 +350,13 @@ function BibliothecairePage() {
         if (!data) return;
 
         if (!data.success) {
-            setStatusMessage(data.reason || MESSAGE_ERREUR_INCONNUE);
+            setStatusMessage(data.reason || API_MESSAGES.UNKNOWN_ERROR);
             return;
         }
 
         await chargerCatalogue();
         setMenuLivreOuvertId(null);
-        setStatusMessage("Exemplaire ajoute");
+        setStatusMessage("Exemplaire ajouté");
     };
 
     const handleSupprimerExemplaire = async (exemplaireId: number) => {
@@ -316,15 +366,67 @@ function BibliothecairePage() {
 
         if (!data.success) {
             if (data.emprunteParUserId !== undefined) {
-                setStatusMessage(`Impossible de supprimer cet exemplaire: emprunte par l'utilisateur ${data.emprunteParUserId}`);
+                setStatusMessage(`Impossible de supprimer cet exemplaire : emprunté par utilisateur ${data.emprunteParUsername || "inconnu"}`);
                 return;
             }
-            setStatusMessage(data.reason || MESSAGE_ERREUR_INCONNUE);
+            setStatusMessage(data.reason || API_MESSAGES.UNKNOWN_ERROR);
             return;
         }
 
         await chargerCatalogue();
-        setStatusMessage("Exemplaire supprime");
+        setStatusMessage("Exemplaire supprimé");
+    };
+
+    const handleAjouterEmprunt = async () => {
+        setStatusMessage("");
+        if (!exemplaireEmpruntSelectionneId || codeSerieAbonnementInput.trim().length === 0) {
+            setStatusMessage("Livre, exemplaire disponible et code série requis");
+            return;
+        }
+
+        const data = await lirePost<corpsAjoutEmpruntBibliothecaire, reponseAjoutEmpruntBibliothecaire>(
+            "/bibliothecaire/emprunt/ajouter",
+            { codeSerieAbonnement: codeSerieAbonnementInput.trim(), exemplaireId: exemplaireEmpruntSelectionneId }
+        );
+        if (!data) return;
+
+        if (!data.success) {
+            if (data.livresEnRetard && data.livresEnRetard.length > 0) {
+                const details = data.livresEnRetard
+                    .map(livre => `- ${livre.titreLivre} (exemplaire nº${livre.exemplaireId}, retour prévu ${livre.dateRetourPrevue})`)
+                    .join("\n");
+                setStatusMessage(`${data.reason || API_MESSAGES.UNKNOWN_ERROR}\n${details}`);
+                return;
+            }
+
+            setStatusMessage(data.reason || API_MESSAGES.UNKNOWN_ERROR);
+            return;
+        }
+
+        setCodeSerieAbonnementInput("");
+        setExemplaireEmpruntSelectionneId(null);
+        setLivreEmpruntSelectionneId(null);
+        await chargerCatalogue();
+        await chargerEmpruntsBibliothecaire();
+        setStatusMessage("Emprunt ajouté");
+    };
+
+    const handleConfirmerRetourEmprunt = async (empruntId: number) => {
+        setStatusMessage("");
+        const data = await lirePost<corpsConfirmationRetourEmprunt, baseResponse>(
+            "/bibliothecaire/emprunt/retour",
+            { empruntId }
+        );
+        if (!data) return;
+
+        if (!data.success) {
+            setStatusMessage(data.reason || API_MESSAGES.UNKNOWN_ERROR);
+            return;
+        }
+
+        await chargerCatalogue();
+        await chargerEmpruntsBibliothecaire();
+        setStatusMessage("Retour confirmé");
     };
 
     const auteursFiltres = auteurs.filter(auteur =>
@@ -341,66 +443,96 @@ function BibliothecairePage() {
             return a.nom.localeCompare(b.nom);
         });
 
-    return (
-        <>
-            <div className="bibliothecaire-panel">
-                {
-                    activeMenu === "catalogue" ?
-                        <CatalogSection
-                            auteurs={auteurs}
-                            livres={livres}
-                            exemplaires={exemplaires}
-                            emprunts={emprunts}
-                            livreTitreInput={livreTitreInput}
-                            livreAuteurRechercheInput={livreAuteurRechercheInput}
-                            auteurIdsSelectionnes={auteurIdsSelectionnes}
-                            menuLivreOuvertId={menuLivreOuvertId}
-                            livreEnEditionId={livreEnEditionId}
-                            editionTitreInput={editionTitreInput}
-                            editionAuteurIdsSelectionnes={editionAuteurIdsSelectionnes}
-                            editionAuteurRechercheInput={editionAuteurRechercheInput}
-                            onLivreTitreChange={setLivreTitreInput}
-                            onLivreAuteurRechercheChange={setLivreAuteurRechercheInput}
-                            onEditionTitreChange={setEditionTitreInput}
-                            onEditionAuteurRechercheChange={setEditionAuteurRechercheInput}
-                            onToggleAuteurSelectionne={(auteurId) => toggleSelectionAuteur(auteurId, setAuteurIdsSelectionnes)}
-                            onToggleAuteurEdition={(auteurId) => toggleSelectionAuteur(auteurId, setEditionAuteurIdsSelectionnes)}
-                            onAjouterLivre={handleAjouterLivre}
-                            onOuvrirEdition={handleOuvrirEdition}
-                            onSauvegarderEdition={handleSauvegarderEdition}
-                            onAnnulerEdition={reinitialiserEdition}
-                            onToggleMenuLivre={(livreId) => {
-                                setMenuLivreOuvertId(prev => prev === livreId ? null : livreId);
-                            }}
-                            onSupprimerLivre={handleSupprimerLivre}
-                            onAjouterExemplaire={handleAjouterExemplaire}
-                            onSupprimerExemplaire={handleSupprimerExemplaire}
-                        /> : activeMenu === "auteurs" ?
-                            <AuteursSection
-                                auteurRechercheInput={auteurRechercheInput}
-                                nouvelAuteurInput={nouvelAuteurInput}
-                                auteursTries={auteursTries}
-                                onAuteurRechercheChange={setAuteurRechercheInput}
-                                onNouvelAuteurChange={setNouvelAuteurInput}
-                                onAjouterAuteur={handleAjouterAuteur}
-                                onSupprimerAuteur={handleSupprimerAuteur}
-                            /> :
-                            <EmpruntsSection />
-                }
+    const exemplaireIdsEmpruntes = new Set(emprunts.map(emprunt => emprunt.exemplaireId));
+    const livresDisponiblesPourEmprunt = livres.map(livre => ({
+        id: livre.id,
+        titre: livre.titre,
+        hasExemplaireDisponible: exemplaires.some(
+            exemplaire => exemplaire.livreId === livre.id && !exemplaireIdsEmpruntes.has(exemplaire.id)
+        )
+    }));
+    const exemplairesDisponiblesPourLivreSelectionne = livreEmpruntSelectionneId === null
+        ? []
+        : exemplaires.filter(exemplaire =>
+            exemplaire.livreId === livreEmpruntSelectionneId && !exemplaireIdsEmpruntes.has(exemplaire.id)
+        );
 
-                {statusMessage.length > 0 ? <p className="bibliothecaire-status">{statusMessage}</p> : null}
-            </div>
-            <AppFooter
-                actions={actions}
-                activeKey={activeMenu}
-                onSelect={(key) => {
-                    setActiveMenu(key);
-                    setMenuLivreOuvertId(null);
-                    reinitialiserEdition();
-                    setStatusMessage("");
-                }}
-            />
-        </>
+    return (
+        <div className="bibliothecaire-panel">
+            {
+                activeMenu === "catalogue" ?
+                    <CatalogSection
+                        auteurs={auteurs}
+                        livres={livres}
+                        exemplaires={exemplaires}
+                        emprunts={emprunts}
+                        livreTitreInput={livreTitreInput}
+                        livreAuteurRechercheInput={livreAuteurRechercheInput}
+                        auteurIdsSelectionnes={auteurIdsSelectionnes}
+                        menuLivreOuvertId={menuLivreOuvertId}
+                        livreEnEditionId={livreEnEditionId}
+                        editionTitreInput={editionTitreInput}
+                        editionAuteurIdsSelectionnes={editionAuteurIdsSelectionnes}
+                        editionAuteurRechercheInput={editionAuteurRechercheInput}
+                        onLivreTitreChange={setLivreTitreInput}
+                        onLivreAuteurRechercheChange={setLivreAuteurRechercheInput}
+                        onEditionTitreChange={setEditionTitreInput}
+                        onEditionAuteurRechercheChange={setEditionAuteurRechercheInput}
+                        onToggleAuteurSelectionne={(auteurId) => toggleSelectionAuteur(auteurId, setAuteurIdsSelectionnes)}
+                        onToggleAuteurEdition={(auteurId) => toggleSelectionAuteur(auteurId, setEditionAuteurIdsSelectionnes)}
+                        onAjouterLivre={handleAjouterLivre}
+                        onOuvrirEdition={handleOuvrirEdition}
+                        onSauvegarderEdition={handleSauvegarderEdition}
+                        onAnnulerEdition={reinitialiserEdition}
+                        onToggleMenuLivre={(livreId) => {
+                            setMenuLivreOuvertId(prev => prev === livreId ? null : livreId);
+                        }}
+                        onSupprimerLivre={handleSupprimerLivre}
+                        onAjouterExemplaire={handleAjouterExemplaire}
+                        onSupprimerExemplaire={handleSupprimerExemplaire}
+                        onOuvrirAuteursRaccourci={() => {
+                            onMenuChange("auteurs");
+                            setMenuLivreOuvertId(null);
+                            reinitialiserEdition();
+                            setStatusMessage("");
+                        }}
+                    /> : activeMenu === "auteurs" ?
+                        <AuteursSection
+                            auteurRechercheInput={auteurRechercheInput}
+                            nouvelAuteurInput={nouvelAuteurInput}
+                            auteurEnEditionId={auteurEnEditionId}
+                            nomAuteurEditionInput={nomAuteurEditionInput}
+                            auteursTries={auteursTries}
+                            onAuteurRechercheChange={setAuteurRechercheInput}
+                            onNouvelAuteurChange={setNouvelAuteurInput}
+                            onAuteurEnEditionNomChange={setNomAuteurEditionInput}
+                            onOuvrirEditionAuteur={handleOuvrirEditionAuteur}
+                            onAnnulerEditionAuteur={handleAnnulerEditionAuteur}
+                            onModifierAuteur={handleModifierAuteur}
+                            onAjouterAuteur={handleAjouterAuteur}
+                            onSupprimerAuteur={handleSupprimerAuteur}
+                        /> :
+                        <EmpruntsSection
+                            empruntsActifs={empruntsActifsBib || []}
+                            empruntsEnRetard={empruntsRetardBib || []}
+                            livresDisponibles={livresDisponiblesPourEmprunt}
+                            exemplairesDisponibles={exemplairesDisponiblesPourLivreSelectionne}
+                            livreSelectionneId={livreEmpruntSelectionneId}
+                            exemplaireSelectionneId={exemplaireEmpruntSelectionneId}
+                            codeSerieAbonnementInput={codeSerieAbonnementInput}
+                            onLivreSelectionneChange={(livreId) => {
+                                setLivreEmpruntSelectionneId(livreId);
+                                setExemplaireEmpruntSelectionneId(null);
+                            }}
+                            onExemplaireSelectionneChange={setExemplaireEmpruntSelectionneId}
+                            onCodeSerieAbonnementInputChange={setCodeSerieAbonnementInput}
+                            onAjouterEmprunt={handleAjouterEmprunt}
+                            onConfirmerRetour={handleConfirmerRetourEmprunt}
+                        />
+            }
+
+            {statusMessage.length > 0 ? <p className="bibliothecaire-status">{statusMessage}</p> : null}
+        </div>
     );
 }
 

@@ -23,6 +23,12 @@
 }
 
 .button-component.admin-main-btn,
+.button-component.admin-refresh-btn {
+    margin: 0 auto;
+    width: 200px !important;
+}
+
+.button-component.admin-main-btn,
 .button-component.admin-refresh-btn,
 .admin-delete-item-btn {
     border: none;
@@ -85,6 +91,60 @@
 
 .admin-delete-item-btn:disabled {
     opacity: 0.65;
+}
+
+.admin-created-credentials {
+    border: 1px solid var(--main-border-color);
+    border-radius: 8px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.admin-created-credentials-row {
+    display: grid;
+    grid-template-columns: 120px 1fr auto;
+    gap: 8px;
+    align-items: center;
+}
+
+.admin-created-credentials-label {
+    color: var(--text-gray-color);
+    font-weight: 700;
+    font-size: 12px;
+}
+
+.admin-created-credentials-value {
+    color: var(--text-color);
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.admin-copy-btn {
+    border: 1px solid var(--main-border-color);
+    background: var(--main-background-color);
+    color: var(--text-color);
+    border-radius: 8px;
+    min-height: 32px;
+    padding: 0 12px;
+    font-weight: 700;
+    font-size: 12px;
+}
+
+.admin-copy-btn-wide {
+    width: fit-content;
+}
+
+@media (max-width: 700px) {
+    .admin-created-credentials-row {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-copy-btn,
+    .admin-copy-btn-wide {
+        width: 100%;
+    }
 }
 
 .admin-status,

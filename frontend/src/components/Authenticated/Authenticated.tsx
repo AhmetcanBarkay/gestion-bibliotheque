@@ -1,6 +1,10 @@
+import { useState } from "react";
 import type { Role } from "@shared/types/roles";
-import AdminPage from "../Admin/AdminPage";
-import BibliothecairePage from "../Bibliothecaire/BibliothecairePage";
+import AdminPage, { type AdminMenuKey } from "../Admin/AdminPage";
+import BibliothecairePage, { type BibliothecaireMenuKey } from "../Bibliothecaire/BibliothecairePage";
+import ClientPage, { type ClientMenuKey } from "../Client/ClientPage";
+import AppNavbar from "../Footer/AppFooter";
+import type { NavbarAction } from "../Footer/AppFooter";
 import "./Authenticated.css";
 
 interface AuthenticatedProps {
@@ -8,25 +12,58 @@ interface AuthenticatedProps {
     username: string | null;
     onLogout: () => void;
 }
-function renderContentForRole(role: Role | null) {
-    switch (role) {
-        case "admin":
-            return <AdminPage />;
-        case "bibliothecaire":
-            return <BibliothecairePage />;
-        default:
-            return <div>Content for default role, role: {role}</div>;
-    }
-};
+
+const adminActions: NavbarAction<AdminMenuKey>[] = [
+    { key: "create", label: "Ajouter" },
+    { key: "delete", label: "Supprimer" }
+];
+
+const bibliothecaireActions: NavbarAction<BibliothecaireMenuKey>[] = [
+    { key: "emprunts", label: "Emprunts" },
+    { key: "catalogue", label: "Catalogue" },
+    { key: "auteurs", label: "Auteurs" }
+];
+
+const clientActions: NavbarAction<ClientMenuKey>[] = [
+    { key: "emprunts", label: "Mes emprunts" },
+    { key: "catalogue", label: "Catalogue" },
+    { key: "abonnement", label: "Mon abonnement" }
+];
+
 function Authenticated({ role, username, onLogout }: AuthenticatedProps) {
+    const [adminMenu, setAdminMenu] = useState<AdminMenuKey>("create");
+    const [bibliothecaireMenu, setBibliothecaireMenu] = useState<BibliothecaireMenuKey>("emprunts");
+    const [clientMenu, setClientMenu] = useState<ClientMenuKey>("emprunts");
+
     return (
         <>
-            <div style={{ width: "min(900px, 85vw)", margin: "30px auto 0 auto", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontWeight: 700, color: "#222" }}>Connecté en tant que {username}</span>
-                <button onClick={onLogout} style={{ border: "none", height: "36px", padding: "0 12px", borderRadius: "8px", backgroundColor: "var(--primary-color)", color: "#fff", fontWeight: 700 }}>Déconnexion</button>
+            <div className="authenticated-topbar">
+                <span className="authenticated-topbar-user">Connecte en tant que {username}</span>
+                <button type="button" onClick={onLogout} className="authenticated-logout-btn">Deconnexion</button>
             </div>
+
+            <div className="authenticated-navigation">
+                {
+                    role === "admin" ?
+                        <AppNavbar actions={adminActions} activeKey={adminMenu} onSelect={setAdminMenu} /> :
+                        role === "bibliothecaire" ?
+                            <AppNavbar actions={bibliothecaireActions} activeKey={bibliothecaireMenu} onSelect={setBibliothecaireMenu} /> :
+                            role === "client" ?
+                                <AppNavbar actions={clientActions} activeKey={clientMenu} onSelect={setClientMenu} /> :
+                                null
+                }
+            </div>
+
             <div id="authenticated-main-content">
-                {renderContentForRole(role)}
+                {
+                    role === "admin" ?
+                        <AdminPage activeMenu={adminMenu} /> :
+                        role === "bibliothecaire" ?
+                            <BibliothecairePage activeMenu={bibliothecaireMenu} onMenuChange={setBibliothecaireMenu} /> :
+                            role === "client" ?
+                                <ClientPage activeMenu={clientMenu} /> :
+                                null
+                }
             </div>
         </>
     );

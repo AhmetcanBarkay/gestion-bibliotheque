@@ -1,29 +1,15 @@
-import { useState } from "react";
 import BibliothecaireManager from "./BibliothecaireManager";
-import AppFooter from "../Footer/AppFooter";
-import type { FooterAction } from "../Footer/AppFooter";
 
-type AdminMenuKey = "create" | "delete";
+export type AdminMenuKey = "create" | "delete";
 
-function AdminPage() {
-    const [adminMenu, setAdminMenu] = useState<AdminMenuKey>("create");
+interface AdminPageProps {
+    activeMenu: AdminMenuKey;
+}
 
-    const adminActions: FooterAction<AdminMenuKey>[] = [
-        { key: "create", label: "Ajouter" },
-        { key: "delete", label: "Supprimer" }
-    ];
+function AdminPage({ activeMenu }: AdminPageProps) {
 
     return (
-        <>
-            <BibliothecaireManager activeMenu={adminMenu} />
-            <AppFooter
-                actions={adminActions}
-                activeKey={adminMenu}
-                onSelect={(key) => {
-                    setAdminMenu(key);
-                }}
-            />
-        </>
+        <BibliothecaireManager activeMenu={activeMenu} />
     );
 }
 
