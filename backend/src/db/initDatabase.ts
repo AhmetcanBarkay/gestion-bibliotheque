@@ -35,12 +35,6 @@ CREATE TABLE IF NOT EXISTS abonnement (
 `);
 
     await query(`
-ALTER TABLE abonnement
-ALTER COLUMN date_fin TYPE TIMESTAMP
-USING date_fin::timestamp;
-`);
-
-    await query(`
 CREATE TABLE IF NOT EXISTS livre (
     id_livre    INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     titre       VARCHAR(50) NOT NULL
