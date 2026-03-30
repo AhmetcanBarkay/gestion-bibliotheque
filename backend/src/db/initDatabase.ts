@@ -1,4 +1,5 @@
 import bcrypt from "bcrypt";
+import { getBcryptSaltRounds } from "../constants/security.js";
 import { pool, query } from "./postgres.js";
 import { generateUniqueToken } from "../services/userService.js";
 
@@ -95,7 +96,7 @@ async function ensureAdminFromEnv(): Promise<void> {
     );
 
     if (existing.rows.length === 0) {
-        const hash = await bcrypt.hash(adminPassword, 10);
+        const hash = await bcrypt.hash(adminPassword, getBcryptSaltRounds());
         const adminToken = await generateUniqueToken(50);
         await query(
             "INSERT INTO utilisateur (identifiant, mdpbcrypt, token_utilisateur, role) VALUES ($1, $2, $3, 'admin')",
@@ -108,7 +109,7 @@ async function ensureAdminFromEnv(): Promise<void> {
     const shouldUpdatePassword = !(await bcrypt.compare(adminPassword, admin.mdpbcrypt));
 
     if (admin.role !== "admin" || shouldUpdatePassword) {
-        const nextHash = shouldUpdatePassword ? await bcrypt.hash(adminPassword, 10) : admin.mdpbcrypt;
+        const nextHash = shouldUpdatePassword ? await bcrypt.hash(adminPassword, getBcryptSaltRounds()) : admin.mdpbcrypt;
         await query(
             "UPDATE utilisateur SET role = 'admin', mdpbcrypt = $1 WHERE id_utilisateur = $2",
             [nextHash, admin.id_utilisateur]

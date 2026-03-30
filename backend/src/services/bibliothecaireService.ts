@@ -34,15 +34,13 @@ type AjouterEmpruntBibliothecaireResult = {
     status:
     | "succes"
     | "abonnement_invalide"
-    | "exemplaire_introuvable"
-    | "deja_emprunte"
+    | "livre_introuvable"
+    | "aucun_exemplaire_disponible"
     | "limite_emprunts_atteinte"
     | "deja_un_emprunt_du_livre"
     | "emprunts_en_retard";
-    id?: number;
     livresEnRetard?: Array<{
         livreId: number;
-        exemplaireId: number;
         titreLivre: string;
         dateRetourPrevue: string;
     }>;
@@ -64,7 +62,6 @@ function mapEmpruntFromDb(row: {
         id: row.id_exemplaire,
         userId: row.id_utilisateur,
         username: row.identifiant,
-        exemplaireId: row.id_exemplaire,
         livreId: row.id_livre,
         titreLivre: row.titre,
         dateDebut,
@@ -225,6 +222,12 @@ export async function ajouterLivre(payload: corpsCreationLivre): Promise<{ statu
         );
     }
 
+    // Crée automatiquement un exemplaire par défaut pour le nouveau livre.
+    const ajoutExemplaireResult = await ajouterExemplaire({ livreId });
+    if (ajoutExemplaireResult.status !== "succes") {
+        throw new Error("Impossible de créer l'exemplaire par défaut du livre");
+    }
+
     return { status: "succes", id: livreId };
 }
 
@@ -379,7 +382,6 @@ export async function listerEmpruntsClient(userId: number): Promise<{ empruntsAc
         const dateRetourPrevue = toDateTimeMinute(row.date_retour_effectif);
         return {
             id: row.id_exemplaire,
-            exemplaireId: row.id_exemplaire,
             livreId: row.id_livre,
             titreLivre: row.titre,
             dateDebut,
@@ -398,21 +400,14 @@ export async function ajouterEmpruntBibliothecaire(payload: corpsAjoutEmpruntBib
     const userId = await trouverUserIdClientActifParCodeSerie(payload.codeSerieAbonnement);
     if (!userId) return { status: "abonnement_invalide" };
 
-    const exemplaire = await query<{ id_exemplaire: number; id_livre: number; titre: string }>(
-        `SELECT e.id_exemplaire, e.id_livre, l.titre
-         FROM exemplaire e
-         JOIN livre l ON l.id_livre = e.id_livre
-         WHERE e.id_exemplaire = $1
+    const livre = await query<{ id_livre: number; titre: string }>(
+        `SELECT id_livre, titre
+         FROM livre
+         WHERE id_livre = $1
          LIMIT 1`,
-        [payload.exemplaireId]
+        [payload.livreId]
     );
-    if (exemplaire.rows.length === 0) return { status: "exemplaire_introuvable" };
-
-    const dejaActif = await query<{ id_exemplaire: number }>(
-        "SELECT id_exemplaire FROM emprunt WHERE id_exemplaire = $1 LIMIT 1",
-        [payload.exemplaireId]
-    );
-    if (dejaActif.rows.length > 0) return { status: "deja_emprunte" };
+    if (livre.rows.length === 0) return { status: "livre_introuvable" };
 
     const empruntsActifsClient = await query<EmpruntClientActifRow>(
         `SELECT
@@ -431,7 +426,6 @@ export async function ajouterEmpruntBibliothecaire(payload: corpsAjoutEmpruntBib
         .filter(row => estEmpruntEnRetard(toDateTimeMinute(row.date_retour_effectif)))
         .map(row => ({
             livreId: row.id_livre,
-            exemplaireId: row.id_exemplaire,
             titreLivre: row.titre,
             dateRetourPrevue: toDateTimeMinute(row.date_retour_effectif)
         }));
@@ -450,25 +444,42 @@ export async function ajouterEmpruntBibliothecaire(payload: corpsAjoutEmpruntBib
         };
     }
 
-    const livreExemplaire = exemplaire.rows[0];
-    const emprunteDejaCeLivre = empruntsActifsClient.rows.some(row => row.id_livre === livreExemplaire.id_livre);
+    const livreId = payload.livreId;
+    const emprunteDejaCeLivre = empruntsActifsClient.rows.some(row => row.id_livre === livreId);
     if (emprunteDejaCeLivre) {
         return {
             status: "deja_un_emprunt_du_livre"
         };
     }
 
+    const exemplaireDisponible = await query<{ id_exemplaire: number }>(
+        `SELECT e.id_exemplaire
+         FROM exemplaire e
+         LEFT JOIN emprunt em ON em.id_exemplaire = e.id_exemplaire
+         WHERE e.id_livre = $1
+           AND em.id_exemplaire IS NULL
+         ORDER BY e.id_exemplaire ASC
+         LIMIT 1`,
+        [livreId]
+    );
+
+    if (exemplaireDisponible.rows.length === 0) {
+        return { status: "aucun_exemplaire_disponible" };
+    }
+
+    const exemplaireDisponibleId = exemplaireDisponible.rows[0].id_exemplaire;
+
     const inserted = await query<{ id_exemplaire: number }>(
         `INSERT INTO emprunt (id_utilisateur, id_exemplaire, date_debut, date_retour_effectif)
          VALUES ($1, $2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '7 days')
          ON CONFLICT (id_exemplaire) DO NOTHING
          RETURNING id_exemplaire`,
-        [userId, payload.exemplaireId]
+        [userId, exemplaireDisponibleId]
     );
 
-    if (inserted.rows.length === 0) return { status: "deja_emprunte" };
+    if (inserted.rows.length === 0) return { status: "aucun_exemplaire_disponible" };
 
-    return { status: "succes", id: payload.exemplaireId };
+    return { status: "succes" };
 }
 
 export async function confirmerRetourEmprunt(empruntId: number): Promise<"succes" | "introuvable"> {

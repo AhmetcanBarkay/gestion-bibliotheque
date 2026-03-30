@@ -61,7 +61,6 @@ function BibliothecairePage({ activeMenu, onMenuChange }: BibliothecairePageProp
     const [editionAuteurIdsSelectionnes, setEditionAuteurIdsSelectionnes] = useState<number[]>([]);
     const [editionAuteurRechercheInput, setEditionAuteurRechercheInput] = useState("");
     const [livreEmpruntSelectionneId, setLivreEmpruntSelectionneId] = useState<number | null>(null);
-    const [exemplaireEmpruntSelectionneId, setExemplaireEmpruntSelectionneId] = useState<number | null>(null);
     const [codeSerieAbonnementInput, setCodeSerieAbonnementInput] = useState("");
 
     const { lireGet, lirePost } = createApiReader(setStatusMessage);
@@ -379,21 +378,21 @@ function BibliothecairePage({ activeMenu, onMenuChange }: BibliothecairePageProp
 
     const handleAjouterEmprunt = async () => {
         setStatusMessage("");
-        if (!exemplaireEmpruntSelectionneId || codeSerieAbonnementInput.trim().length === 0) {
-            setStatusMessage("Livre, exemplaire disponible et code série requis");
+        if (!livreEmpruntSelectionneId || codeSerieAbonnementInput.trim().length === 0) {
+            setStatusMessage("Livre et code série requis");
             return;
         }
 
         const data = await lirePost<corpsAjoutEmpruntBibliothecaire, reponseAjoutEmpruntBibliothecaire>(
             "/bibliothecaire/emprunt/ajouter",
-            { codeSerieAbonnement: codeSerieAbonnementInput.trim(), exemplaireId: exemplaireEmpruntSelectionneId }
+            { codeSerieAbonnement: codeSerieAbonnementInput.trim(), livreId: livreEmpruntSelectionneId }
         );
         if (!data) return;
 
         if (!data.success) {
             if (data.livresEnRetard && data.livresEnRetard.length > 0) {
                 const details = data.livresEnRetard
-                    .map(livre => `- ${livre.titreLivre} (exemplaire nº${livre.exemplaireId}, retour prévu ${livre.dateRetourPrevue})`)
+                    .map(livre => `- ${livre.titreLivre} (retour prévu ${livre.dateRetourPrevue})`)
                     .join("\n");
                 setStatusMessage(`${data.reason || API_MESSAGES.UNKNOWN_ERROR}\n${details}`);
                 return;
@@ -404,7 +403,6 @@ function BibliothecairePage({ activeMenu, onMenuChange }: BibliothecairePageProp
         }
 
         setCodeSerieAbonnementInput("");
-        setExemplaireEmpruntSelectionneId(null);
         setLivreEmpruntSelectionneId(null);
         await chargerCatalogue();
         await chargerEmpruntsBibliothecaire();
@@ -451,11 +449,6 @@ function BibliothecairePage({ activeMenu, onMenuChange }: BibliothecairePageProp
             exemplaire => exemplaire.livreId === livre.id && !exemplaireIdsEmpruntes.has(exemplaire.id)
         )
     }));
-    const exemplairesDisponiblesPourLivreSelectionne = livreEmpruntSelectionneId === null
-        ? []
-        : exemplaires.filter(exemplaire =>
-            exemplaire.livreId === livreEmpruntSelectionneId && !exemplaireIdsEmpruntes.has(exemplaire.id)
-        );
 
     return (
         <div className="bibliothecaire-panel">
@@ -516,15 +509,9 @@ function BibliothecairePage({ activeMenu, onMenuChange }: BibliothecairePageProp
                             empruntsActifs={empruntsActifsBib || []}
                             empruntsEnRetard={empruntsRetardBib || []}
                             livresDisponibles={livresDisponiblesPourEmprunt}
-                            exemplairesDisponibles={exemplairesDisponiblesPourLivreSelectionne}
                             livreSelectionneId={livreEmpruntSelectionneId}
-                            exemplaireSelectionneId={exemplaireEmpruntSelectionneId}
                             codeSerieAbonnementInput={codeSerieAbonnementInput}
-                            onLivreSelectionneChange={(livreId) => {
-                                setLivreEmpruntSelectionneId(livreId);
-                                setExemplaireEmpruntSelectionneId(null);
-                            }}
-                            onExemplaireSelectionneChange={setExemplaireEmpruntSelectionneId}
+                            onLivreSelectionneChange={setLivreEmpruntSelectionneId}
                             onCodeSerieAbonnementInputChange={setCodeSerieAbonnementInput}
                             onAjouterEmprunt={handleAjouterEmprunt}
                             onConfirmerRetour={handleConfirmerRetourEmprunt}

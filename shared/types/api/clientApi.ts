@@ -2,7 +2,6 @@ import type { baseResponse } from "./baseApi.js";
 
 export interface empruntClientItem {
     id: number;
-    exemplaireId: number;
     livreId: number;
     titreLivre: string;
     dateDebut: string;
@@ -32,7 +31,7 @@ export interface reponseCatalogueClient extends baseResponse {
 }
 
 export interface abonnementClientItem {
-    statut: "aucun" | "actif";
+    statut: "aucun" | "actif" | "fini";
     codeSerie: string;
     dateFin: string | null;
 }

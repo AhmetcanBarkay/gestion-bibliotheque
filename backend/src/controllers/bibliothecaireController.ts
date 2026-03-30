@@ -265,20 +265,20 @@ export async function obtenirEmpruntsControleur(req: Request<{}, reponseEmprunts
 
 export async function ajouterEmpruntControleur(req: Request<{}, reponseAjoutEmpruntBibliothecaire, corpsAjoutEmpruntBibliothecaire>, res: Response<reponseAjoutEmpruntBibliothecaire>) {
     try {
-        const { codeSerieAbonnement, exemplaireId } = req.body;
-        if (typeof codeSerieAbonnement !== "string" || codeSerieAbonnement.trim().length === 0 || typeof exemplaireId !== "number") {
+        const { codeSerieAbonnement, livreId } = req.body;
+        if (typeof codeSerieAbonnement !== "string" || codeSerieAbonnement.trim().length === 0 || typeof livreId !== "number") {
             return res.status(400).json({ success: false, reason: "Données invalides" });
         }
 
-        const result = await ajouterEmpruntBibliothecaire({ codeSerieAbonnement, exemplaireId });
+        const result = await ajouterEmpruntBibliothecaire({ codeSerieAbonnement, livreId });
         if (result.status === "abonnement_invalide") {
             return res.status(400).json({ success: false, reason: "Code série invalide ou abonnement inactif" });
         }
-        if (result.status === "exemplaire_introuvable") {
-            return res.status(404).json({ success: false, reason: "Exemplaire introuvable" });
+        if (result.status === "livre_introuvable") {
+            return res.status(404).json({ success: false, reason: "Livre introuvable" });
         }
-        if (result.status === "deja_emprunte") {
-            return res.status(409).json({ success: false, reason: "Exemplaire déjà emprunté" });
+        if (result.status === "aucun_exemplaire_disponible") {
+            return res.status(409).json({ success: false, reason: "Aucun exemplaire disponible pour ce livre" });
         }
         if (result.status === "limite_emprunts_atteinte") {
             return res.status(409).json({
@@ -300,7 +300,7 @@ export async function ajouterEmpruntControleur(req: Request<{}, reponseAjoutEmpr
             });
         }
 
-        return res.status(201).json({ success: true, id: result.id });
+        return res.status(201).json({ success: true });
     } catch (err) {
         console.error(err);
         return res.status(500).json({ success: false, reason: "Erreur interne" });

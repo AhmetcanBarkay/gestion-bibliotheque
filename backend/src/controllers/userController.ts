@@ -1,6 +1,15 @@
 import type { Request, Response } from 'express';
-import type { loginBody, loginResponse, registerBody, registerResponse, verifyTokenBody, verifyTokenResponse } from "@shared/types/api/authApi.js";
-import { getUserByLogin, registerClientUser } from '../services/userService.js';
+import type {
+    changePasswordBody,
+    changePasswordResponse,
+    loginBody,
+    loginResponse,
+    registerBody,
+    registerResponse,
+    verifyTokenBody,
+    verifyTokenResponse
+} from "@shared/types/api/authApi.js";
+import { changeUserPassword, getUserByLogin, registerClientUser } from '../services/userService.js';
 import { getPasswordRulesErrors, isPasswordValid } from '@shared/utils/passwordRules.js';
 import { getUsernameRulesErrors } from '@shared/utils/usernameRules.js';
 import { API_MESSAGES } from '@shared/constants/messages.js';
@@ -33,7 +42,7 @@ export async function loginUser(req: Request<{}, loginResponse, loginBody>, res:
         if (password.length > 100) {
             return res.status(400).json({
                 success: false,
-                reason: "Mot de passe invalide:\n- 100 caractères maximum"
+                reason: "Mot de passe invalide, 100 caractères maximum"
             });
         }
 
@@ -86,7 +95,7 @@ export async function registerUser(req: Request<{}, registerResponse, registerBo
         if (!isPasswordValid(password) || passwordRuleErrors.length > 0) {
             return res.status(400).json({
                 success: false,
-                reason: `Mot de passe invalide:\n- ${passwordRuleErrors.join("\n- ")}`
+                reason: `Mot de passe invalide, il vous faut :\n- ${passwordRuleErrors.join("\n- ")}`
             });
         }
 
@@ -126,3 +135,60 @@ export async function registerUser(req: Request<{}, registerResponse, registerBo
         });
     }
 };
+
+export async function changePasswordUser(req: Request<{}, changePasswordResponse, changePasswordBody>, res: Response<changePasswordResponse>) {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ success: false, reason: API_MESSAGES.UNAUTHENTICATED });
+        }
+
+        if (req.user.role !== "client" && req.user.role !== "bibliothecaire") {
+            return res.status(403).json({ success: false, reason: API_MESSAGES.ACCESS_DENIED });
+        }
+
+        const { currentPassword, newPassword, confirmPassword } = req.body;
+        if (!currentPassword || !newPassword || !confirmPassword) {
+            return res.status(400).json({
+                success: false,
+                reason: "Champs invalides"
+            });
+        }
+
+        const passwordRuleErrors = getPasswordRulesErrors(newPassword);
+        if (!isPasswordValid(newPassword) || passwordRuleErrors.length > 0) {
+            return res.status(400).json({
+                success: false,
+                reason: `Mot de passe invalide, il vous faut:\n- ${passwordRuleErrors.join("\n- ")}`
+            });
+        }
+
+        if (newPassword !== confirmPassword) {
+            return res.status(400).json({
+                success: false,
+                reason: "Confirmation invalide: doit être identique au nouveau mot de passe"
+            });
+        }
+
+        const result = await changeUserPassword(req.user.id, currentPassword, newPassword);
+        if (result.status === "not_found") {
+            return res.status(404).json({ success: false, reason: API_MESSAGES.UNAUTHENTICATED });
+        }
+        if (result.status === "invalid_current_password") {
+            return res.status(400).json({ success: false, reason: "Mot de passe actuel incorrect" });
+        }
+        if (result.status === "same_password") {
+            return res.status(400).json({ success: false, reason: "Le nouveau mot de passe doit être différent de l'actuel" });
+        }
+        if (result.status === "error") {
+            return res.status(500).json({ success: false, reason: API_MESSAGES.INTERNAL_ERROR });
+        }
+
+        return res.status(200).json({ success: true, token: result.token });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({
+            success: false,
+            reason: API_MESSAGES.INTERNAL_ERROR
+        });
+    }
+}

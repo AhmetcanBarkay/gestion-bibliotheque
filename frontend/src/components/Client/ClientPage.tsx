@@ -172,6 +172,7 @@ function ClientPage({ activeMenu }: ClientPageProps) {
     const nombreEmpruntsEnCours = empruntsActifs.length + empruntsEnRetard.length;
     const nombreEmpruntsAffiche = nombreEmpruntsCatalogue ?? nombreEmpruntsEnCours;
     const nombreRetardsAffiche = nombreRetardsCatalogue ?? empruntsEnRetard.length;
+    const abonnementFini = abonnement.statut === "fini";
 
     return (
         <div className="client-panel">
@@ -190,7 +191,6 @@ function ClientPage({ activeMenu }: ClientPageProps) {
                                             empruntsActifs.map(emprunt => (
                                                 <li key={emprunt.id} className="client-emprunt-card">
                                                     <p className="client-emprunt-title">{emprunt.titreLivre}</p>
-                                                    <p className="client-emprunt-meta">Exemplaire nº{emprunt.exemplaireId}</p>
                                                     <p className="client-emprunt-meta">Début : {formatterDate(emprunt.dateDebut)}</p>
                                                     <p className="client-emprunt-meta">Retour prévu : {formatterDate(emprunt.dateRetourPrevue)}</p>
                                                 </li>
@@ -209,7 +209,6 @@ function ClientPage({ activeMenu }: ClientPageProps) {
                                             empruntsEnRetard.map(emprunt => (
                                                 <li key={emprunt.id} className="client-emprunt-card client-emprunt-card-retard">
                                                     <p className="client-emprunt-title">{emprunt.titreLivre}</p>
-                                                    <p className="client-emprunt-meta">Exemplaire nº{emprunt.exemplaireId}</p>
                                                     <p className="client-emprunt-meta">Début : {formatterDate(emprunt.dateDebut)}</p>
                                                     <p className="client-emprunt-meta">Retour prévu : {formatterDate(emprunt.dateRetourPrevue)}</p>
                                                 </li>
@@ -295,7 +294,19 @@ function ClientPage({ activeMenu }: ClientPageProps) {
                                         }
                                     </div> :
                                     <div className="client-group">
-                                        <p className="client-muted">Aucun abonnement actif.</p>
+                                        {
+                                            abonnementFini ?
+                                                <>
+                                                    <p>
+                                                        Statut: <strong>Fini</strong>
+                                                    </p>
+                                                    <p>
+                                                        Date fin: <strong>{formatterDate(abonnement.dateFin)}</strong>
+                                                        <span className="client-abonnement-fini">Abonnement fini</span>
+                                                    </p>
+                                                </> :
+                                                <p className="client-muted">Aucun abonnement actif.</p>
+                                        }
                                         <button type="button" className="client-btn client-btn-success" onClick={handleSouscrire}>Souscrire</button>
 
                                         {

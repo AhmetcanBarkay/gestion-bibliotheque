@@ -9,20 +9,13 @@ interface LivreDisponibleOption {
     hasExemplaireDisponible: boolean;
 }
 
-interface ExemplaireDisponibleOption {
-    id: number;
-}
-
 interface EmpruntsSectionProps {
     empruntsActifs: empruntBibliothecaireItem[];
     empruntsEnRetard: empruntBibliothecaireItem[];
     livresDisponibles: LivreDisponibleOption[];
-    exemplairesDisponibles: ExemplaireDisponibleOption[];
     livreSelectionneId: number | null;
-    exemplaireSelectionneId: number | null;
     codeSerieAbonnementInput: string;
     onLivreSelectionneChange: (livreId: number | null) => void;
-    onExemplaireSelectionneChange: (exemplaireId: number | null) => void;
     onCodeSerieAbonnementInputChange: (value: string) => void;
     onAjouterEmprunt: () => void;
     onConfirmerRetour: (empruntId: number) => void;
@@ -32,12 +25,9 @@ function EmpruntsSection({
     empruntsActifs,
     empruntsEnRetard,
     livresDisponibles,
-    exemplairesDisponibles,
     livreSelectionneId,
-    exemplaireSelectionneId,
     codeSerieAbonnementInput,
     onLivreSelectionneChange,
-    onExemplaireSelectionneChange,
     onCodeSerieAbonnementInputChange,
     onAjouterEmprunt,
     onConfirmerRetour
@@ -84,7 +74,7 @@ function EmpruntsSection({
                                     return (
                                         <li key={emprunt.id} className={isRetard ? "emprunts-item emprunts-item-retard" : "emprunts-item"}>
                                             <div className="emprunts-item-top">
-                                                <p><strong>{emprunt.titreLivre}</strong> (exemplaire nº{emprunt.exemplaireId})</p>
+                                                <p><strong>{emprunt.titreLivre}</strong></p>
                                                 {isRetard ? <span className="emprunts-retard-badge">EN RETARD</span> : null}
                                             </div>
                                             <p>Utilisateur : {emprunt.username || "inconnu"}</p>
@@ -115,7 +105,7 @@ function EmpruntsSection({
                     <div className="bibliothecaire-action-panel biblio-surface emprunts-create-panel">
                         <div className="emprunts-create-header">
                             <h4>Créer un emprunt</h4>
-                            <p>Sélectionne un livre, puis un exemplaire disponible et le code série du client.</p>
+                            <p>Sélectionne un livre et le code série du client.</p>
                         </div>
 
                         <div className="emprunts-create-row">
@@ -133,7 +123,7 @@ function EmpruntsSection({
                                     {
                                         livresDisponibles.map(livre => (
                                             <option key={livre.id} value={livre.id} disabled={!livre.hasExemplaireDisponible}>
-                                                {livre.titre}{livre.hasExemplaireDisponible ? "" : " (tous exemplaires pris)"}
+                                                {livre.titre}{livre.hasExemplaireDisponible ? "" : " (aucun exemplaire disponible)"}
                                             </option>
                                         ))
                                     }
@@ -141,29 +131,7 @@ function EmpruntsSection({
                             </label>
 
                             <label className="emprunts-field">
-                                <span className="emprunts-field-label">2. Exemplaire</span>
-                                <select
-                                    className="emprunts-input biblio-input"
-                                    value={exemplaireSelectionneId ?? ""}
-                                    onChange={(e) => {
-                                        const value = e.target.value;
-                                        onExemplaireSelectionneChange(value === "" ? null : Number(value));
-                                    }}
-                                    disabled={livreSelectionneId === null}
-                                >
-                                    <option value="">Choisir un exemplaire</option>
-                                    {
-                                        exemplairesDisponibles.map(exemplaire => (
-                                            <option key={exemplaire.id} value={exemplaire.id}>
-                                                Exemplaire nº{exemplaire.id}
-                                            </option>
-                                        ))
-                                    }
-                                </select>
-                            </label>
-
-                            <label className="emprunts-field">
-                                <span className="emprunts-field-label">3. Code série</span>
+                                <span className="emprunts-field-label">2. Code série</span>
                                 <input
                                     className="emprunts-input biblio-input"
                                     value={codeSerieAbonnementInput}
