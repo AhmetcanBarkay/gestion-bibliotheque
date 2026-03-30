@@ -90,12 +90,26 @@ Notes:
 - `BCRYPT_SALT_ROUNDS` est optionnel (entier 4..31). Valeur par défaut: 10.
 - Au démarrage backend, le schéma est initialisé et le compte admin est garanti.
 
-3. Démarrer l'application en développement:
+3. Démarrer l'application en développement (2 terminaux recommandés):
+
+Terminal 1 (backend API):
 
 ```bash
 npm run dev:backend
+```
+
+Terminal 2 (frontend Vite):
+
+```bash
 npm run dev:frontend
 ```
+
+Les deux processus doivent tourner en meme temps en mode dev:
+
+- le backend expose l'API (port 3000 par defaut)
+- le frontend sert l'interface web (port 5173 par defaut)
+
+Si un seul des deux est lance, l'application sera partiellement utilisable.
 
 URLs locales:
 
