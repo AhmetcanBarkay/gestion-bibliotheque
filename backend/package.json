@@ -7,7 +7,8 @@
         "dev": "tsx watch src/index.ts",
         "build": "tsc",
         "start": "node dist/index.js",
-        "seed:test-data": "tsx src/scripts/seedTestData.ts"
+        "seed-test-data": "tsx src/scripts/seedTestData.ts",
+        "test": "tsx src/scripts/run-tests.ts"
     },
     "keywords": [],
     "author": "",
