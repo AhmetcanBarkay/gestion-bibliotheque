@@ -11,8 +11,7 @@ function buildConfig() {
     }
 
     return {
-        connectionString,
-        ssl: process.env.PG_SSL === "true" ? { rejectUnauthorized: false } : undefined
+        connectionString
     };
 }
 
