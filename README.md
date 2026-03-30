@@ -116,6 +116,12 @@ URLs locales:
 - Frontend: http://localhost:5173
 - Backend: http://localhost:3000
 
+Limites de sécurité (mode test actuel):
+
+- `POST /auth/login`: 10 tentatives maximum par 15 minutes
+- `POST /auth/register`: 20 creations de comptes maximum par 15 minutes
+- `Toutes les routes /client`: 300 requêtes maximum par IP sur 15 minutes
+
 ## Comment tester l'application
 
 Tests techniques rapides:

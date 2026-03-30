@@ -8,7 +8,7 @@ import client from './routes/client.js';
 import { initDatabase } from './db/initDatabase.js';
 
 import { requireAdmin, requireAuth, requireBibliothecaire, requireClient } from './middlewares/authMiddleware.js';
-
+import { clientGlobalRateLimiter } from "./middlewares/rateLimitMiddleware.js";
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -21,7 +21,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/auth', auth);
 app.use('/admin', requireAuth, requireAdmin, admin);
 app.use('/bibliothecaire', requireAuth, requireBibliothecaire, bibliothecaire);
-app.use('/client', requireAuth, requireClient, client);
+app.use('/client', requireAuth, requireClient, clientGlobalRateLimiter, client);
 
 // non trouvée
 app.use((req: Request, res: Response) => {
