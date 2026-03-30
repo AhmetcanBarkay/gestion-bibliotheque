@@ -79,7 +79,7 @@ npm install
 
 ```env
 PORT=3000
-DATABASE_URL=postgres://votre_user:votre_mot_de_passe@127.0.0.1:5432/gestion_bibliotheque
+DATABASE_URL=postgres://votre_user:votre_mot_de_passe@127.0.0.1:5432/nom_base_de_donnees
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=ChangeMe123!
 BCRYPT_SALT_ROUNDS=10
@@ -112,10 +112,25 @@ npm run build
 
 Ce script compile backend + frontend et valide que l'application build correctement.
 
+Tests unitaires:
+
+```bash
+npm run test
+```
+
+Ce script lance tous les tests du dossier `backend/src/tests`.
+Il execute automatiquement tous les fichiers `*.test.ts` dans `backend/src/tests`.
+Il couvre les fonctionnalites des roles et l'authentification avec des fichiers separes:
+
+- admin
+- bibliothecaire
+- client
+- auth
+
 Initialisation rapide des donnees de test:
 
 ```bash
-npm run seed:test-data
+npm run seed-test-data
 ```
 
 Ce script ajoute des donnees de base via les services backend:
@@ -157,5 +172,6 @@ Tests fonctionnels manuels recommandés:
 - `npm run build:backend`: compile le backend.
 - `npm run build:frontend`: compile le frontend.
 - `npm run build`: build complet backend + frontend.
-- `npm run seed:test-data`: ajoute des donnees de base de test (livres, exemplaires, compte bibliothecaire).
+- `npm run test`: lance tous les tests du dossier `backend/src/tests`.
+- `npm run seed-test-data`: ajoute des donnees de base de test (livres, exemplaires, compte bibliothecaire).
 - `npm run start`: lance le backend compilé.
