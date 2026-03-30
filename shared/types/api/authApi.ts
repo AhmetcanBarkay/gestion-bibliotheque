@@ -26,3 +26,13 @@ export interface verifyTokenResponse extends baseResponse {
     role?: Role;
     username?: string;
 };
+
+export interface changePasswordBody {
+    currentPassword: string;
+    newPassword: string;
+    confirmPassword: string;
+};
+
+export interface changePasswordResponse extends baseResponse {
+    token?: string;
+};

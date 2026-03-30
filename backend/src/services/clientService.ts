@@ -58,7 +58,7 @@ export async function obtenirAbonnementClient(userId: number): Promise<abonnemen
         `SELECT code_serie, date_fin
          FROM abonnement
          WHERE id_utilisateur = $1
-           AND date_fin >= CURRENT_TIMESTAMP
+                 ORDER BY date_fin DESC
          LIMIT 1`,
         [userId]
     );
@@ -68,11 +68,13 @@ export async function obtenirAbonnementClient(userId: number): Promise<abonnemen
     }
 
     const abonnement = result.rows[0];
+    const dateFin = toDateTimeMinute(abonnement.date_fin);
+    const estActif = new Date(dateFin) >= new Date();
 
     return {
-        statut: "actif",
+        statut: estActif ? "actif" : "fini",
         codeSerie: abonnement.code_serie,
-        dateFin: toDateTimeMinute(abonnement.date_fin)
+        dateFin
     };
 }
 

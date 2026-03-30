@@ -124,6 +124,7 @@ function Authentification(props: AuthentificationProps) {
 
     return (
         <div id="authentification" className="center">
+            <img className="auth-logo" src="/logo.png" alt="Logo bibliothèque" />
             <div style={{ display: "flex", gap: "20px", flexDirection: "column" }}>
                 <Input
                     label="Nom d'utilisateur"

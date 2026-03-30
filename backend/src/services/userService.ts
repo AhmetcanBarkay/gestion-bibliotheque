@@ -2,6 +2,7 @@ import bcrypt from "bcrypt";
 import crypto from "crypto";
 import User from "../models/user.js";
 import type { Role } from "@shared/types/roles.js";
+import { getBcryptSaltRounds } from "../constants/security.js";
 import { query } from "../db/postgres.js";
 
 interface DbUserRow {
@@ -122,7 +123,7 @@ export async function createUser(username: string, password: string, role: User[
     }
 
     try {
-        const hash = await bcrypt.hash(password, 10);
+        const hash = await bcrypt.hash(password, getBcryptSaltRounds());
 
         // Re-check to avoid race with another request creating same username in parallel.
         if (await getUserByUsername(username)) {
@@ -171,3 +172,30 @@ export function getUsersByRole(role: User['role']): Promise<User[]> {
         [role]
     ).then(result => result.rows.map(row => toUser(row)));
 };
+
+type changePasswordResult = {
+    status: "success" | "not_found" | "invalid_current_password" | "same_password" | "error";
+    token?: string;
+};
+export async function changeUserPassword(userId: number, currentPassword: string, newPassword: string): Promise<changePasswordResult> {
+    const user = await getUserById(userId);
+    if (!user) return { status: "not_found" };
+
+    const currentMatches = await bcrypt.compare(currentPassword, user.hashedPassword);
+    if (!currentMatches) return { status: "invalid_current_password" };
+
+    const nextEqualsCurrent = await bcrypt.compare(newPassword, user.hashedPassword);
+    if (nextEqualsCurrent) return { status: "same_password" };
+
+    try {
+        const hash = await bcrypt.hash(newPassword, getBcryptSaltRounds());
+        const token = await generateUniqueToken(50);
+        await query(
+            "UPDATE utilisateur SET mdpbcrypt = $1, token_utilisateur = $2 WHERE id_utilisateur = $3",
+            [hash, token, userId]
+        );
+        return { status: "success", token };
+    } catch {
+        return { status: "error" };
+    }
+}

@@ -140,6 +140,17 @@
     font-weight: 700;
 }
 
+.client-abonnement-fini {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--danger-color);
+    color: var(--danger-color);
+    font-size: 12px;
+    font-weight: 700;
+}
+
 .client-warning-block {
     border: 1px solid var(--danger-color);
     border-radius: 8px;

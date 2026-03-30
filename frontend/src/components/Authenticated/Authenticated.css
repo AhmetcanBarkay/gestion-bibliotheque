@@ -17,6 +17,22 @@
     color: var(--text-color);
 }
 
+.authenticated-topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.authenticated-change-password-btn {
+    border: 1px solid var(--main-border-color);
+    height: 36px;
+    padding: 0 12px;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-color);
+    font-weight: 700;
+}
+
 .authenticated-logout-btn {
     border: none;
     height: 36px;
@@ -25,4 +41,90 @@
     background: var(--primary-color);
     color: white;
     font-weight: 700;
+}
+
+.authenticated-password-panel {
+    width: min(900px, 85vw);
+    margin: 10px auto 0;
+    border: 1px solid var(--main-border-color);
+    border-radius: 10px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.authenticated-password-panel h3 {
+    color: var(--text-color);
+    font-size: 14px;
+}
+
+.authenticated-password-fields {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.authenticated-password-input {
+    border: 1px solid var(--main-border-color);
+    border-radius: 8px;
+    padding: 0 10px;
+    height: 34px;
+    background: var(--main-background-color);
+    color: var(--text-color);
+    min-width: 220px;
+    flex: 1;
+}
+
+.authenticated-password-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.authenticated-password-save-btn,
+.authenticated-password-cancel-btn {
+    border: none;
+    border-radius: 8px;
+    height: 34px;
+    padding: 0 12px;
+    font-weight: 700;
+}
+
+.authenticated-password-save-btn {
+    background: var(--success-color);
+    color: white;
+}
+
+.authenticated-password-cancel-btn {
+    border: 1px solid var(--main-border-color);
+    background-color: var(--main-background-color);
+    color: var(--text-color);
+}
+
+.authenticated-password-message {
+    width: min(900px, 85vw);
+    margin: 8px auto 0;
+    color: var(--info-color);
+    font-weight: 700;
+    white-space: pre-line;
+}
+
+@media (max-width: 700px) {
+    .authenticated-topbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .authenticated-topbar-actions {
+        width: 100%;
+    }
+
+    .authenticated-change-password-btn,
+    .authenticated-logout-btn {
+        flex: 1;
+    }
+
+    .authenticated-password-actions {
+        flex-direction: column;
+    }
 }

@@ -207,13 +207,13 @@ function CatalogSection({
                                                     <p className="exemplaire-empty">Aucun exemplaire</p> :
                                                     <ul className="exemplaires-list">
                                                         {
-                                                            exemplairesLivre.map(exemplaire => {
+                                                            exemplairesLivre.map((exemplaire, index) => {
                                                                 const empruntActif = getEmpruntActifPourExemplaire(emprunts, exemplaire.id);
                                                                 const estEmprunte = !!empruntActif;
                                                                 return (
                                                                     <li key={exemplaire.id} className={estEmprunte ? "exemplaire-item borrowed" : "exemplaire-item"}>
                                                                         <div>
-                                                                            <p>Exemplaire nº{exemplaire.id}</p>
+                                                                            <p>Exemplaire n°{index + 1}</p>
                                                                             {
                                                                                 estEmprunte ?
                                                                                     <p className="exemplaire-state">Emprunté (Utilisateur : {empruntActif.username || "inconnu"})</p> :

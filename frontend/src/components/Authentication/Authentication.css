@@ -13,6 +13,12 @@
     color: var(--primary-color);
 }
 
+.auth-logo {
+    width: 100%;
+    height: fit-content;
+    margin-bottom: 6px;
+}
+
 .auth-toggle-btn {
     margin-top: 6px;
     border: none;

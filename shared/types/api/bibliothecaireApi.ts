@@ -94,7 +94,6 @@ export interface empruntBibliothecaireItem {
     id: number;
     userId: number;
     username: string;
-    exemplaireId: number;
     livreId: number;
     titreLivre: string;
     dateDebut: string;
@@ -109,14 +108,12 @@ export interface reponseEmpruntsBibliothecaire extends baseResponse {
 
 export interface corpsAjoutEmpruntBibliothecaire {
     codeSerieAbonnement: string;
-    exemplaireId: number;
+    livreId: number;
 }
 
 export interface reponseAjoutEmpruntBibliothecaire extends baseResponse {
-    id?: number;
     livresEnRetard?: Array<{
         livreId: number;
-        exemplaireId: number;
         titreLivre: string;
         dateRetourPrevue: string;
     }>;
