@@ -29,9 +29,7 @@ Créer un fichier `.env` à la racine (voir `.env.example`) avec au minimum:
 
 ```env
 PORT=3000
-NODE_ENV=development
 DATABASE_URL=postgres://votre_user:votre_mot_de_passe@127.0.0.1:5432/gestion_bibliotheque
-PG_SSL=false
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=ChangeMe123!
 ```
@@ -65,6 +63,14 @@ Comportement attendu:
 - Si vous avez un emprunt en retard, un nouvel emprunt est refusé.
 - Si vous avez déjà un exemplaire d'un livre, vous ne pouvez pas emprunter un 2e exemplaire actif du même livre.
 - En cas de refus, l'interface affiche la raison exacte pour vous guider.
+
+### Déroulement concret d'un emprunt
+
+1. Le client souscrit un abonnement et obtient un code série.
+2. Le client se rend physiquement à la bibliothèque et communique ce code série au bibliothécaire.
+3. Le bibliothécaire choisit un livre, puis un exemplaire disponible, et valide l'emprunt.
+4. Le backend vérifie les règles métier (abonnement actif, exemplaire disponible, pas de retard, pas de doublon sur le même livre, limite d'emprunts non dépassée).
+5. Si toutes les règles sont respectées, l'emprunt est enregistré. Sinon, l'API renvoie la raison du refus et l'interface l'affiche.
 
 ## Commandes npm run dev
 
