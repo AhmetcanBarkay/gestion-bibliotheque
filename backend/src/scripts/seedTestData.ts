@@ -1,14 +1,16 @@
 import { closeDatabase, initDatabase } from "../db/initDatabase.js";
 import {
     ajouterAuteur,
+    ajouterEmpruntBibliothecaire,
     ajouterExemplaire,
     ajouterLivre,
     listerAuteurs,
     listerCatalogue,
     modifierLivre
 } from "../services/bibliothecaireService.js";
-import { souscrireAbonnement } from "../services/clientService.js";
-import { createBibliothecaireUser, deleteUserById, getUserByUsername, registerClientUser } from "../services/userService.js";
+import { souscrireAbonnement, trouverUserIdClientActifParCodeSerie } from "../services/clientService.js";
+import { createBibliothecaireUser, getUserByUsername, registerClientUser } from "../services/userService.js";
+import { query } from "../db/postgres.js";
 
 type LivreSeed = {
     titre: string;
@@ -121,36 +123,50 @@ async function ensureBibliothecaireCompte(): Promise<void> {
     const existing = await getUserByUsername(BIBLIOTHECAIRE_USERNAME);
     if (existing) {
         if (existing.role !== "bibliothecaire") {
-            throw new Error(`Le compte ${BIBLIOTHECAIRE_USERNAME} existe deja avec un autre role`);
+            console.warn(`[seed:test-data] Compte existant ${BIBLIOTHECAIRE_USERNAME} ignore (role actuel: ${existing.role}).`);
         }
-
-        await deleteUserById(existing.id);
+        return;
     }
 
     const created = await createBibliothecaireUser(BIBLIOTHECAIRE_USERNAME, BIBLIOTHECAIRE_PASSWORD);
-    if (created.status !== "success") {
+    if (created.status !== "success" && created.status !== "user_exists") {
         throw new Error("Impossible de creer le compte bibliothecaire de test");
     }
 }
 
-async function ensureClientAbonne(clientSeed: ClientSeed): Promise<{ username: string; password: string; codeSerie: string }> {
+async function ensureClientAbonne(clientSeed: ClientSeed): Promise<{ username: string; password: string; codeSerie: string } | undefined> {
     const existing = await getUserByUsername(clientSeed.username);
+    let userId: number | undefined;
+
     if (existing) {
         if (existing.role !== "client") {
-            throw new Error(`Le compte ${clientSeed.username} existe deja avec un autre role`);
+            console.warn(`[seed:test-data] Compte existant ${clientSeed.username} ignore (role actuel: ${existing.role}).`);
+            return undefined;
         }
-
-        await deleteUserById(existing.id);
+        userId = existing.id;
     }
 
-    const created = await registerClientUser(clientSeed.username, clientSeed.password);
-    if (created.status !== "success" || !created.user) {
-        throw new Error(`Impossible de creer le client de test: ${clientSeed.username}`);
+    if (!userId) {
+        const created = await registerClientUser(clientSeed.username, clientSeed.password);
+        if (created.status === "success" && created.user) {
+            userId = created.user.id;
+        } else if (created.status === "user_exists") {
+            const user = await getUserByUsername(clientSeed.username);
+            if (user?.role === "client") {
+                userId = user.id;
+            }
+        }
     }
 
-    const abonnement = await souscrireAbonnement(created.user.id, { dureeMois: clientSeed.dureeMois });
+    if (!userId) {
+        console.warn(`[seed:test-data] Client ${clientSeed.username} non seed (creation impossible).`);
+        return undefined;
+    }
+
+    const abonnement = await souscrireAbonnement(userId, { dureeMois: clientSeed.dureeMois });
     if (abonnement.status !== "succes" || !abonnement.abonnement) {
-        throw new Error(`Impossible de souscrire l'abonnement pour: ${clientSeed.username}`);
+        console.warn(`[seed:test-data] Abonnement non cree pour ${clientSeed.username}.`);
+        return undefined;
     }
 
     return {
@@ -158,6 +174,62 @@ async function ensureClientAbonne(clientSeed: ClientSeed): Promise<{ username: s
         password: clientSeed.password,
         codeSerie: abonnement.abonnement.codeSerie
     };
+}
+
+async function ensureEmpruntEnRetardAncien(codeSerieAbonnement: string, titreLivreCible: string): Promise<void> {
+    const clientUserId = await trouverUserIdClientActifParCodeSerie(codeSerieAbonnement);
+    if (!clientUserId) {
+        throw new Error("Impossible de retrouver le client actif pour creer l'emprunt en retard");
+    }
+
+    const catalogue = await listerCatalogue();
+    const livreCible = catalogue.find(livre => livre.titre.toLowerCase() === titreLivreCible.toLowerCase());
+    if (!livreCible) {
+        throw new Error(`Livre cible introuvable pour l'emprunt en retard: ${titreLivreCible}`);
+    }
+
+    const empruntsClientAvant = await query<{ id_exemplaire: number; id_livre: number }>(
+        `SELECT e.id_exemplaire, e.id_livre
+         FROM emprunt em
+         JOIN exemplaire e ON e.id_exemplaire = em.id_exemplaire
+         WHERE em.id_utilisateur = $1`,
+        [clientUserId]
+    );
+
+    if (empruntsClientAvant.rows.length === 0) {
+        const ajoutResult = await ajouterEmpruntBibliothecaire({
+            codeSerieAbonnement,
+            livreId: livreCible.id
+        });
+
+        if (ajoutResult.status !== "succes" && ajoutResult.status !== "deja_un_emprunt_du_livre") {
+            throw new Error(`Impossible de creer l'emprunt initial pour le retard: ${ajoutResult.status}`);
+        }
+    }
+
+    const empruntsClientApres = await query<{ id_exemplaire: number; id_livre: number }>(
+        `SELECT e.id_exemplaire, e.id_livre
+         FROM emprunt em
+         JOIN exemplaire e ON e.id_exemplaire = em.id_exemplaire
+         WHERE em.id_utilisateur = $1
+         ORDER BY e.id_exemplaire ASC`,
+        [clientUserId]
+    );
+
+    if (empruntsClientApres.rows.length === 0) {
+        throw new Error("Aucun emprunt trouve pour positionner un retard ancien");
+    }
+
+    const empruntCible =
+        empruntsClientApres.rows.find(emprunt => emprunt.id_livre === livreCible.id) ?? empruntsClientApres.rows[0];
+
+    await query(
+        `UPDATE emprunt
+         SET date_debut = CURRENT_TIMESTAMP - INTERVAL '20 days',
+             date_retour_effectif = CURRENT_TIMESTAMP - INTERVAL '12 days'
+         WHERE id_exemplaire = $1`,
+        [empruntCible.id_exemplaire]
+    );
 }
 
 async function seed(): Promise<void> {
@@ -171,7 +243,14 @@ async function seed(): Promise<void> {
     const clientsSeedes: Array<{ username: string; password: string; codeSerie: string }> = [];
     for (const clientSeed of CLIENTS_AJOUT) {
         const seededClient = await ensureClientAbonne(clientSeed);
-        clientsSeedes.push(seededClient);
+        if (seededClient) {
+            clientsSeedes.push(seededClient);
+        }
+    }
+
+    const clientPourRetard = clientsSeedes.find(client => client.codeSerie.trim().length > 0);
+    if (clientPourRetard) {
+        await ensureEmpruntEnRetardAncien(clientPourRetard.codeSerie, "Le Petit Prince");
     }
 
     console.log("[seed:test-data] Donnees de base ajoutees.");
@@ -182,6 +261,9 @@ async function seed(): Promise<void> {
     console.log("[seed:test-data] Comptes clients abonnes:");
     for (const client of clientsSeedes) {
         console.log(`[seed:test-data] - ${client.username} | mot de passe: ${client.password} | code serie: ${client.codeSerie}`);
+    }
+    if (clientPourRetard) {
+        console.log(`[seed:test-data] Emprunt en retard ancien force pour: ${clientPourRetard.username}`);
     }
 }
 
