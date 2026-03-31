@@ -2,16 +2,19 @@ import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 import dotenv from "dotenv";
 import { genererNomUnique, nettoyerEmpruntsClient, nettoyerUtilisateurParNom } from "./helpers/testHelpers.js";
+import { LIMITE_MAX_EMPRUNTS_ACTIFS } from "../constants/reglesEmprunt.js";
 
 dotenv.config();
 
 let db: typeof import("../db/initDatabase.js");
+let postgres: typeof import("../db/postgres.js");
 let bibliothecaireService: typeof import("../services/bibliothecaireService.js");
 let clientService: typeof import("../services/clientService.js");
 let userService: typeof import("../services/userService.js");
 
 before(async () => {
     db = await import("../db/initDatabase.js");
+    postgres = await import("../db/postgres.js");
     bibliothecaireService = await import("../services/bibliothecaireService.js");
     clientService = await import("../services/clientService.js");
     userService = await import("../services/userService.js");
@@ -160,6 +163,138 @@ test("Bibliothecaire : bloque un doublon d'emprunt sur le meme livre", async () 
     } finally {
         await nettoyerEmpruntsClient(bibliothecaireService, clientUserId);
         if (livreId) await bibliothecaireService.supprimerLivre(livreId).catch(() => undefined);
+        if (auteurId) await bibliothecaireService.supprimerAuteur({ auteurId, force: true }).catch(() => undefined);
+        await nettoyerUtilisateurParNom(userService, clientUsername);
+    }
+});
+
+test("Bibliothecaire : un client ne peut pas depasser la limite max d'emprunts actifs", async () => {
+    const auteurNom = genererNomUnique("biblio_test_auteur_limite");
+    const clientUsername = genererNomUnique("biblio_test_client_limite");
+
+    let auteurId: number | undefined;
+    let clientUserId: number | undefined;
+    const livreIds: number[] = [];
+
+    try {
+        const creationClient = await userService.registerClientUser(clientUsername, "Testclient123!");
+        assert.equal(creationClient.status, "success");
+        clientUserId = creationClient.user?.id;
+        assert.ok(clientUserId);
+
+        const souscription = await clientService.souscrireAbonnement(clientUserId!, { dureeMois: 1 });
+        assert.equal(souscription.status, "succes");
+        assert.ok(souscription.abonnement);
+
+        const auteurCreation = await bibliothecaireService.ajouterAuteur(auteurNom);
+        assert.equal(auteurCreation.status, "succes");
+        auteurId = auteurCreation.id;
+        assert.ok(auteurId);
+
+        for (let i = 0; i < LIMITE_MAX_EMPRUNTS_ACTIFS + 1; i++) {
+            const livreTitre = genererNomUnique(`biblio_test_livre_limite_${i}`);
+            const livreCreation = await bibliothecaireService.ajouterLivre({
+                titre: livreTitre,
+                auteurIds: [auteurId]
+            });
+            assert.equal(livreCreation.status, "succes");
+            assert.ok(livreCreation.id);
+            livreIds.push(livreCreation.id!);
+        }
+
+        for (let i = 0; i < LIMITE_MAX_EMPRUNTS_ACTIFS; i++) {
+            const ajoutEmprunt = await bibliothecaireService.ajouterEmpruntBibliothecaire({
+                codeSerieAbonnement: souscription.abonnement!.codeSerie,
+                livreId: livreIds[i]
+            });
+            assert.equal(ajoutEmprunt.status, "succes");
+        }
+
+        const ajoutAuDelaLimite = await bibliothecaireService.ajouterEmpruntBibliothecaire({
+            codeSerieAbonnement: souscription.abonnement!.codeSerie,
+            livreId: livreIds[LIMITE_MAX_EMPRUNTS_ACTIFS]
+        });
+        assert.equal(ajoutAuDelaLimite.status, "limite_emprunts_atteinte");
+    } finally {
+        await nettoyerEmpruntsClient(bibliothecaireService, clientUserId);
+
+        for (const livreId of livreIds) {
+            await bibliothecaireService.supprimerLivre(livreId).catch(() => undefined);
+        }
+
+        if (auteurId) await bibliothecaireService.supprimerAuteur({ auteurId, force: true }).catch(() => undefined);
+        await nettoyerUtilisateurParNom(userService, clientUsername);
+    }
+});
+
+test("Bibliothecaire : bloque un nouvel emprunt si le client a un emprunt en retard", async () => {
+    const auteurNom = genererNomUnique("biblio_test_auteur_retard");
+    const clientUsername = genererNomUnique("biblio_test_client_retard");
+
+    let auteurId: number | undefined;
+    let clientUserId: number | undefined;
+    let premierLivreId: number | undefined;
+    let secondLivreId: number | undefined;
+
+    try {
+        const creationClient = await userService.registerClientUser(clientUsername, "Testclient123!");
+        assert.equal(creationClient.status, "success");
+        clientUserId = creationClient.user?.id;
+        assert.ok(clientUserId);
+
+        const souscription = await clientService.souscrireAbonnement(clientUserId!, { dureeMois: 1 });
+        assert.equal(souscription.status, "succes");
+        assert.ok(souscription.abonnement);
+
+        const auteurCreation = await bibliothecaireService.ajouterAuteur(auteurNom);
+        assert.equal(auteurCreation.status, "succes");
+        auteurId = auteurCreation.id;
+        assert.ok(auteurId);
+
+        const premierLivreCreation = await bibliothecaireService.ajouterLivre({
+            titre: genererNomUnique("biblio_test_livre_retard_1"),
+            auteurIds: [auteurId]
+        });
+        assert.equal(premierLivreCreation.status, "succes");
+        premierLivreId = premierLivreCreation.id;
+        assert.ok(premierLivreId);
+
+        const secondLivreCreation = await bibliothecaireService.ajouterLivre({
+            titre: genererNomUnique("biblio_test_livre_retard_2"),
+            auteurIds: [auteurId]
+        });
+        assert.equal(secondLivreCreation.status, "succes");
+        secondLivreId = secondLivreCreation.id;
+        assert.ok(secondLivreId);
+
+        const premierAjout = await bibliothecaireService.ajouterEmpruntBibliothecaire({
+            codeSerieAbonnement: souscription.abonnement!.codeSerie,
+            livreId: premierLivreId
+        });
+        assert.equal(premierAjout.status, "succes");
+
+        const empruntsClient = await bibliothecaireService.listerEmpruntsClient(clientUserId!);
+        const empruntActifId = empruntsClient.empruntsActifs[0]?.id;
+        assert.ok(empruntActifId);
+
+        await postgres.query(
+            "UPDATE emprunt SET date_retour_effectif = CURRENT_TIMESTAMP - INTERVAL '10 days' WHERE id_exemplaire = $1",
+            [empruntActifId]
+        );
+
+        const tentativeApresRetard = await bibliothecaireService.ajouterEmpruntBibliothecaire({
+            codeSerieAbonnement: souscription.abonnement!.codeSerie,
+            livreId: secondLivreId
+        });
+
+        assert.equal(tentativeApresRetard.status, "emprunts_en_retard");
+        assert.ok(tentativeApresRetard.livresEnRetard);
+        assert.ok(tentativeApresRetard.livresEnRetard!.length >= 1);
+        assert.equal(tentativeApresRetard.livresEnRetard![0].livreId, premierLivreId);
+    } finally {
+        await nettoyerEmpruntsClient(bibliothecaireService, clientUserId);
+        if (secondLivreId) await bibliothecaireService.supprimerLivre(secondLivreId).catch(() => undefined);
+        if (premierLivreId) await bibliothecaireService.supprimerLivre(premierLivreId).catch(() => undefined);
         if (auteurId) await bibliothecaireService.supprimerAuteur({ auteurId, force: true }).catch(() => undefined);
         await nettoyerUtilisateurParNom(userService, clientUsername);
     }
