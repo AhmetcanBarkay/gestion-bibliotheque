@@ -2,6 +2,7 @@ import bcrypt from "bcrypt";
 import { getBcryptSaltRounds } from "../constants/security.js";
 import { pool, query } from "./postgres.js";
 import { generateUniqueToken } from "../services/userService.js";
+import { Role } from "@shared/types/roles.js";
 
 async function ensureSchema(): Promise<void> {
     await query(`
@@ -60,22 +61,47 @@ CREATE TABLE IF NOT EXISTS auteur (
 
     await query(`
 CREATE TABLE IF NOT EXISTS auteur_livre (
-    id_auteur   INTEGER REFERENCES auteur(id_auteur) ON DELETE CASCADE,
+    id_auteur   INTEGER REFERENCES auteur(id_auteur) ON DELETE RESTRICT,
     id_livre    INTEGER REFERENCES livre(id_livre) ON DELETE CASCADE,
     PRIMARY KEY (id_auteur, id_livre)
 );
 `);
 
     await query(`
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.table_constraints
+        WHERE constraint_name = 'auteur_livre_id_auteur_fkey'
+          AND table_name = 'auteur_livre'
+    ) THEN
+        ALTER TABLE auteur_livre DROP CONSTRAINT auteur_livre_id_auteur_fkey;
+    END IF;
+
+    ALTER TABLE auteur_livre
+        ADD CONSTRAINT auteur_livre_id_auteur_fkey
+        FOREIGN KEY (id_auteur)
+        REFERENCES auteur(id_auteur)
+        ON DELETE RESTRICT;
+EXCEPTION
+    WHEN duplicate_object THEN
+        NULL;
+END
+$$;
+`);
+
+    await query(`
 CREATE TABLE IF NOT EXISTS emprunt (
+    id_emprunt              INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     id_utilisateur          INTEGER NOT NULL REFERENCES utilisateur(id_utilisateur),
     id_exemplaire           INTEGER NOT NULL UNIQUE REFERENCES exemplaire(id_exemplaire),
     date_debut              TIMESTAMP NOT NULL,
-    date_retour_effectif    TIMESTAMP NOT NULL,
-    PRIMARY KEY (id_exemplaire)
+    date_retour_effectif    TIMESTAMP NOT NULL
 );
 `);
-}
+};
+
 
 async function ensureAdminFromEnv(): Promise<void> {
     const adminUsername = process.env.ADMIN_USERNAME?.trim() || "admin";
@@ -89,12 +115,11 @@ async function ensureAdminFromEnv(): Promise<void> {
         id_utilisateur: number;
         mdpbcrypt: string;
         token_utilisateur: string;
-        role: "admin" | "client" | "bibliothecaire";
+        role: Role;
     }>(
         "SELECT id_utilisateur, mdpbcrypt, token_utilisateur, role FROM utilisateur WHERE identifiant = $1 LIMIT 1",
         [adminUsername]
-    );
-
+    )
     if (existing.rows.length === 0) {
         const hash = await bcrypt.hash(adminPassword, getBcryptSaltRounds());
         const adminToken = await generateUniqueToken(50);
