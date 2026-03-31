@@ -26,6 +26,27 @@ CREATE TABLE IF NOT EXISTS utilisateur (
 `);
 
     await query(`
+CREATE OR REPLACE FUNCTION interdire_modification_role_utilisateur()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.role IS DISTINCT FROM OLD.role THEN
+        RAISE EXCEPTION 'Modification du role interdite';
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+`);
+
+    await query(`
+DROP TRIGGER IF EXISTS trig_interdire_modification_role_utilisateur ON utilisateur;
+CREATE TRIGGER trig_interdire_modification_role_utilisateur
+BEFORE UPDATE OF role ON utilisateur
+FOR EACH ROW
+EXECUTE FUNCTION interdire_modification_role_utilisateur();
+`);
+
+    await query(`
 CREATE TABLE IF NOT EXISTS abonnement (
     id_abonnement   INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     id_utilisateur  INTEGER UNIQUE
@@ -133,10 +154,16 @@ async function ensureAdminFromEnv(): Promise<void> {
     const admin = existing.rows[0];
     const shouldUpdatePassword = !(await bcrypt.compare(adminPassword, admin.mdpbcrypt));
 
-    if (admin.role !== "admin" || shouldUpdatePassword) {
-        const nextHash = shouldUpdatePassword ? await bcrypt.hash(adminPassword, getBcryptSaltRounds()) : admin.mdpbcrypt;
+    if (admin.role !== "admin") {
+        throw new Error(
+            `Le compte ${adminUsername} existe deja avec le role ${admin.role}. Le role ne peut pas etre modifie apres creation.`
+        );
+    }
+
+    if (shouldUpdatePassword) {
+        const nextHash = await bcrypt.hash(adminPassword, getBcryptSaltRounds());
         await query(
-            "UPDATE utilisateur SET role = 'admin', mdpbcrypt = $1 WHERE id_utilisateur = $2",
+            "UPDATE utilisateur SET mdpbcrypt = $1 WHERE id_utilisateur = $2",
             [nextHash, admin.id_utilisateur]
         );
     }
