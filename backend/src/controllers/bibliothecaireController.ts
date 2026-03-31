@@ -114,12 +114,11 @@ export async function supprimerAuteurControleur(req: Request<{}, reponseSuppress
             return res.status(404).json({ success: false, reason: "Auteur introuvable" });
         }
 
-        if (result.status === "confirmation_requise") {
+        if (result.status === "auteur_lie_a_des_livres") {
             return res.status(409).json({
                 success: false,
-                reason: "Auteur lié à des livres",
-                livresLiesCount: result.livresLiesCount,
-                besoinConfirmation: true
+                reason: "Impossible de supprimer un auteur lié à des livres",
+                livresLiesCount: result.livresLiesCount
             });
         }
 
@@ -141,6 +140,9 @@ export async function ajouterLivreControleur(req: Request<{}, reponseCreationLiv
         }
 
         const result = await ajouterLivre({ titre, auteurIds });
+        if (result.status === "auteur_requis") {
+            return res.status(400).json({ success: false, reason: "Au moins un auteur est requis" });
+        }
         if (result.status === "auteurs_invalides") {
             return res.status(400).json({ success: false, reason: "Un ou plusieurs auteurs sont invalides" });
         }

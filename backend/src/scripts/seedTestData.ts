@@ -188,8 +188,8 @@ async function ensureEmpruntEnRetardAncien(codeSerieAbonnement: string, titreLiv
         throw new Error(`Livre cible introuvable pour l'emprunt en retard: ${titreLivreCible}`);
     }
 
-    const empruntsClientAvant = await query<{ id_exemplaire: number; id_livre: number }>(
-        `SELECT e.id_exemplaire, e.id_livre
+    const empruntsClientAvant = await query<{ id_emprunt: number; id_exemplaire: number; id_livre: number }>(
+        `SELECT em.id_emprunt, e.id_exemplaire, e.id_livre
          FROM emprunt em
          JOIN exemplaire e ON e.id_exemplaire = em.id_exemplaire
          WHERE em.id_utilisateur = $1`,
@@ -207,12 +207,12 @@ async function ensureEmpruntEnRetardAncien(codeSerieAbonnement: string, titreLiv
         }
     }
 
-    const empruntsClientApres = await query<{ id_exemplaire: number; id_livre: number }>(
-        `SELECT e.id_exemplaire, e.id_livre
+    const empruntsClientApres = await query<{ id_emprunt: number; id_exemplaire: number; id_livre: number }>(
+        `SELECT em.id_emprunt, e.id_exemplaire, e.id_livre
          FROM emprunt em
          JOIN exemplaire e ON e.id_exemplaire = em.id_exemplaire
          WHERE em.id_utilisateur = $1
-         ORDER BY e.id_exemplaire ASC`,
+         ORDER BY em.id_emprunt ASC`,
         [clientUserId]
     );
 
@@ -227,8 +227,8 @@ async function ensureEmpruntEnRetardAncien(codeSerieAbonnement: string, titreLiv
         `UPDATE emprunt
          SET date_debut = CURRENT_TIMESTAMP - INTERVAL '20 days',
              date_retour_effectif = CURRENT_TIMESTAMP - INTERVAL '12 days'
-         WHERE id_exemplaire = $1`,
-        [empruntCible.id_exemplaire]
+         WHERE id_emprunt = $1`,
+        [empruntCible.id_emprunt]
     );
 }
 

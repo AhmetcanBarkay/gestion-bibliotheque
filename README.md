@@ -44,7 +44,9 @@ Relations importantes:
 - Un utilisateur peut avoir plusieurs emprunts.
 - Un exemplaire appartient à un seul livre.
 - Un livre peut avoir plusieurs exemplaires.
-- Un livre peut avoir zéro, un ou plusieurs auteurs (et vice versa).
+- Un livre doit avoir au moins un auteur (et peut en avoir plusieurs).
+- Lors de l'ajout d'un auteur, il n'est lié à aucun livre, puis peut être lié lors de l'ajout ou de la modification d'un livre.
+- Un auteur ne peut pas être supprimé tant qu'il est lié à au moins un livre.
 - Un utilisateur peut avoir un abonnement.
 
 ## Contraintes métier d'emprunt

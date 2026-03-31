@@ -47,6 +47,7 @@ type AjouterEmpruntBibliothecaireResult = {
 };
 
 function mapEmpruntFromDb(row: {
+    id_emprunt: number;
     id_exemplaire: number;
     id_utilisateur: number;
     identifiant: string;
@@ -59,7 +60,7 @@ function mapEmpruntFromDb(row: {
     const dateRetourPrevue = toDateTimeMinute(row.date_retour_effectif);
 
     return {
-        id: row.id_exemplaire,
+        id: row.id_emprunt,
         userId: row.id_utilisateur,
         username: row.identifiant,
         livreId: row.id_livre,
@@ -123,7 +124,7 @@ export async function modifierAuteur(payload: { auteurId: number; nom: string })
     return "succes";
 }
 
-export async function supprimerAuteur(payload: corpsSuppressionAuteur): Promise<{ status: "succes" | "confirmation_requise" | "introuvable"; livresLiesCount?: number }> {
+export async function supprimerAuteur(payload: corpsSuppressionAuteur): Promise<{ status: "succes" | "auteur_lie_a_des_livres" | "introuvable"; livresLiesCount?: number }> {
     const existing = await query<{ id_auteur: number }>(
         "SELECT id_auteur FROM auteur WHERE id_auteur = $1 LIMIT 1",
         [payload.auteurId]
@@ -135,8 +136,8 @@ export async function supprimerAuteur(payload: corpsSuppressionAuteur): Promise<
         [payload.auteurId]
     );
     const livresLiesCount = Number(links.rows[0]?.count || "0");
-    if (livresLiesCount > 0 && !payload.force) {
-        return { status: "confirmation_requise", livresLiesCount };
+    if (livresLiesCount > 0) {
+        return { status: "auteur_lie_a_des_livres", livresLiesCount };
     }
 
     await query("DELETE FROM auteur WHERE id_auteur = $1", [payload.auteurId]);
@@ -199,8 +200,12 @@ export async function listerCatalogue(): Promise<livreItem[]> {
     }));
 }
 
-export async function ajouterLivre(payload: corpsCreationLivre): Promise<{ status: "succes" | "auteurs_invalides"; id?: number }> {
+export async function ajouterLivre(payload: corpsCreationLivre): Promise<{ status: "succes" | "auteurs_invalides" | "auteur_requis"; id?: number }> {
     const auteurIds = [...new Set(payload.auteurIds)];
+    if (auteurIds.length === 0) {
+        return { status: "auteur_requis" };
+    }
+
     const auteursValidesResult = await query<{ count: string }>(
         "SELECT COUNT(*)::text AS count FROM auteur WHERE id_auteur = ANY($1::int[])",
         [auteurIds]
@@ -324,6 +329,7 @@ export async function supprimerExemplaire(payload: corpsSuppressionExemplaire): 
 
 export async function listerEmpruntsBibliothecaire(): Promise<{ empruntsActifs: empruntBibliothecaireItem[]; empruntsEnRetard: empruntBibliothecaireItem[] }> {
     const result = await query<{
+        id_emprunt: number;
         id_exemplaire: number;
         id_utilisateur: number;
         identifiant: string;
@@ -333,6 +339,7 @@ export async function listerEmpruntsBibliothecaire(): Promise<{ empruntsActifs: 
         date_retour_effectif: string | Date;
     }>(
         `SELECT
+            em.id_emprunt,
             em.id_exemplaire,
             em.id_utilisateur,
             u.identifiant,
@@ -357,6 +364,7 @@ export async function listerEmpruntsBibliothecaire(): Promise<{ empruntsActifs: 
 
 export async function listerEmpruntsClient(userId: number): Promise<{ empruntsActifs: empruntClientItem[]; empruntsEnRetard: empruntClientItem[] }> {
     const result = await query<{
+        id_emprunt: number;
         id_exemplaire: number;
         id_livre: number;
         titre: string;
@@ -364,6 +372,7 @@ export async function listerEmpruntsClient(userId: number): Promise<{ empruntsAc
         date_retour_effectif: string | Date;
     }>(
         `SELECT
+            em.id_emprunt,
             em.id_exemplaire,
             l.id_livre,
             l.titre,
@@ -381,7 +390,7 @@ export async function listerEmpruntsClient(userId: number): Promise<{ empruntsAc
         const dateDebut = toDateTimeMinute(row.date_debut);
         const dateRetourPrevue = toDateTimeMinute(row.date_retour_effectif);
         return {
-            id: row.id_exemplaire,
+            id: row.id_emprunt,
             livreId: row.id_livre,
             titreLivre: row.titre,
             dateDebut,
@@ -469,11 +478,11 @@ export async function ajouterEmpruntBibliothecaire(payload: corpsAjoutEmpruntBib
 
     const exemplaireDisponibleId = exemplaireDisponible.rows[0].id_exemplaire;
 
-    const inserted = await query<{ id_exemplaire: number }>(
+    const inserted = await query<{ id_emprunt: number }>(
         `INSERT INTO emprunt (id_utilisateur, id_exemplaire, date_debut, date_retour_effectif)
          VALUES ($1, $2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '7 days')
          ON CONFLICT (id_exemplaire) DO NOTHING
-         RETURNING id_exemplaire`,
+         RETURNING id_emprunt`,
         [userId, exemplaireDisponibleId]
     );
 
@@ -483,14 +492,14 @@ export async function ajouterEmpruntBibliothecaire(payload: corpsAjoutEmpruntBib
 }
 
 export async function confirmerRetourEmprunt(empruntId: number): Promise<"succes" | "introuvable"> {
-    const emprunt = await query<{ id_exemplaire: number }>(
-        "SELECT id_exemplaire FROM emprunt WHERE id_exemplaire = $1 LIMIT 1",
+    const emprunt = await query<{ id_emprunt: number }>(
+        "SELECT id_emprunt FROM emprunt WHERE id_emprunt = $1 LIMIT 1",
         [empruntId]
     );
     if (emprunt.rows.length === 0) return "introuvable";
 
     await query(
-        "DELETE FROM emprunt WHERE id_exemplaire = $1",
+        "DELETE FROM emprunt WHERE id_emprunt = $1",
         [empruntId]
     );
     return "succes";

@@ -53,6 +53,43 @@ test("Bibliothecaire : ajoute un auteur et un livre avec exemplaire par defaut",
     }
 });
 
+test("Bibliothecaire : refuse la creation d'un livre sans auteur", async () => {
+    const livreTitre = genererNomUnique("biblio_test_livre_sans_auteur");
+
+    const livreCreation = await bibliothecaireService.ajouterLivre({ titre: livreTitre, auteurIds: [] });
+    assert.equal(livreCreation.status, "auteur_requis");
+});
+
+test("Bibliothecaire : refuse la suppression d'un auteur lie a des livres", async () => {
+    const auteurNom = genererNomUnique("biblio_test_auteur_suppression_bloquee");
+    const livreTitre = genererNomUnique("biblio_test_livre_suppression_bloquee");
+
+    let auteurId: number | undefined;
+    let livreId: number | undefined;
+
+    try {
+        const auteurCreation = await bibliothecaireService.ajouterAuteur(auteurNom);
+        assert.equal(auteurCreation.status, "succes");
+        auteurId = auteurCreation.id;
+        assert.ok(auteurId);
+
+        const livreCreation = await bibliothecaireService.ajouterLivre({
+            titre: livreTitre,
+            auteurIds: [auteurId]
+        });
+        assert.equal(livreCreation.status, "succes");
+        livreId = livreCreation.id;
+        assert.ok(livreId);
+
+        const suppression = await bibliothecaireService.supprimerAuteur({ auteurId, force: true });
+        assert.equal(suppression.status, "auteur_lie_a_des_livres");
+        assert.ok((suppression.livresLiesCount || 0) >= 1);
+    } finally {
+        if (livreId) await bibliothecaireService.supprimerLivre(livreId).catch(() => undefined);
+        if (auteurId) await bibliothecaireService.supprimerAuteur({ auteurId }).catch(() => undefined);
+    }
+});
+
 test("Bibliothecaire : cree un emprunt puis confirme le retour", async () => {
     const auteurNom = genererNomUnique("biblio_test_auteur_emprunt");
     const livreTitre = genererNomUnique("biblio_test_livre_emprunt");
@@ -278,7 +315,7 @@ test("Bibliothecaire : bloque un nouvel emprunt si le client a un emprunt en ret
         assert.ok(empruntActifId);
 
         await postgres.query(
-            "UPDATE emprunt SET date_retour_effectif = CURRENT_TIMESTAMP - INTERVAL '10 days' WHERE id_exemplaire = $1",
+            "UPDATE emprunt SET date_retour_effectif = CURRENT_TIMESTAMP - INTERVAL '10 days' WHERE id_emprunt = $1",
             [empruntActifId]
         );
 
