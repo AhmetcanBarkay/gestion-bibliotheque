@@ -162,6 +162,7 @@ Ce script ajoute des donnees de base via les services backend:
 - 2 livres avec 1 exemplaire
 - 1 compte bibliothecaire de test
 - 2 comptes clients de test avec abonnement actif
+- 1 emprunt ancien force en retard pour un client de test
 
 Identifiants du compte bibliothecaire de test (affiches aussi en sortie de script):
 
