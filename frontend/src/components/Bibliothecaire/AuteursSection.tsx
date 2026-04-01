@@ -87,7 +87,10 @@ function AuteursSection({
                                         </> :
                                         <button type="button" className="auteur-edit-btn biblio-btn" onClick={() => onOuvrirEditionAuteur(auteur)}>Modifier</button>
                                 }
-                                <button type="button" className="auteur-delete-btn biblio-btn biblio-btn-danger" onClick={() => onSupprimerAuteur(auteur.id)}>Supprimer</button>
+                                {
+                                    auteur.livresCount === 0 &&
+                                    <button type="button" className="auteur-delete-btn biblio-btn biblio-btn-danger" onClick={() => onSupprimerAuteur(auteur.id)}>Supprimer</button>
+                                }
                             </div>
                         </li>
                     ))
