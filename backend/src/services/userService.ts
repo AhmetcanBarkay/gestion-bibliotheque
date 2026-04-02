@@ -9,7 +9,7 @@ interface DbUserRow {
     id_utilisateur: number;
     identifiant: string;
     mdpbcrypt: string;
-    token_utilisateur: string;
+    token: string;
     role: Role;
 }
 
@@ -18,7 +18,7 @@ function toUser(row: DbUserRow): User {
         id: row.id_utilisateur,
         username: row.identifiant,
         hashedPassword: row.mdpbcrypt,
-        token: row.token_utilisateur,
+        token: row.token,
         role: row.role,
         date_created: new Date()
     };
@@ -26,7 +26,7 @@ function toUser(row: DbUserRow): User {
 
 export async function getUserByToken(token: string): Promise<User | undefined> {
     const result = await query<DbUserRow>(
-        "SELECT id_utilisateur, identifiant, mdpbcrypt, token_utilisateur, role FROM utilisateur WHERE token_utilisateur = $1 LIMIT 1",
+        "SELECT id_utilisateur, identifiant, mdpbcrypt, token, role FROM utilisateur WHERE token = $1 LIMIT 1",
         [token]
     );
     if (result.rows.length === 0) return undefined;
@@ -35,7 +35,7 @@ export async function getUserByToken(token: string): Promise<User | undefined> {
 
 export async function getUserById(id: number): Promise<User | undefined> {
     const result = await query<DbUserRow>(
-        "SELECT id_utilisateur, identifiant, mdpbcrypt, token_utilisateur, role FROM utilisateur WHERE id_utilisateur = $1 LIMIT 1",
+        "SELECT id_utilisateur, identifiant, mdpbcrypt, token, role FROM utilisateur WHERE id_utilisateur = $1 LIMIT 1",
         [id]
     );
     if (result.rows.length === 0) return undefined;
@@ -56,7 +56,7 @@ export async function generateUniqueToken(length: number = 50): Promise<string> 
     for (let i = 0; i < 20; i++) {
         const token = generateToken(length);
         const existing = await query<{ id_utilisateur: number }>(
-            "SELECT id_utilisateur FROM utilisateur WHERE token_utilisateur = $1 LIMIT 1",
+            "SELECT id_utilisateur FROM utilisateur WHERE token = $1 LIMIT 1",
             [token]
         );
         if (existing.rows.length === 0) return token;
@@ -96,7 +96,7 @@ export function generatePassword(length: number = 12): string {
 export function getUserByUsername(username: string): Promise<User | undefined> {
     const searchUsername = username.trim().toLowerCase();
     return query<DbUserRow>(
-        "SELECT id_utilisateur, identifiant, mdpbcrypt, token_utilisateur, role FROM utilisateur WHERE LOWER(identifiant) = $1 LIMIT 1",
+        "SELECT id_utilisateur, identifiant, mdpbcrypt, token, role FROM utilisateur WHERE LOWER(identifiant) = $1 LIMIT 1",
         [searchUsername]
     ).then(result => {
         if (result.rows.length === 0) return undefined;
@@ -132,7 +132,7 @@ export async function createUser(username: string, password: string, role: User[
 
         const token = await generateUniqueToken(50);
         const inserted = await query<DbUserRow>(
-            "INSERT INTO utilisateur (identifiant, mdpbcrypt, token_utilisateur, role) VALUES ($1, $2, $3, $4) RETURNING id_utilisateur, identifiant, mdpbcrypt, token_utilisateur, role",
+            "INSERT INTO utilisateur (identifiant, mdpbcrypt, token, role) VALUES ($1, $2, $3, $4) RETURNING id_utilisateur, identifiant, mdpbcrypt, token, role",
             [username.trim(), hash, token, role]
         );
 
@@ -168,7 +168,7 @@ export function deleteUserById(id: number): Promise<deleteUserResult> {
 
 export function getUsersByRole(role: User['role']): Promise<User[]> {
     return query<DbUserRow>(
-        "SELECT id_utilisateur, identifiant, mdpbcrypt, token_utilisateur, role FROM utilisateur WHERE role = $1 ORDER BY id_utilisateur ASC",
+        "SELECT id_utilisateur, identifiant, mdpbcrypt, token, role FROM utilisateur WHERE role = $1 ORDER BY id_utilisateur ASC",
         [role]
     ).then(result => result.rows.map(row => toUser(row)));
 };
@@ -191,7 +191,7 @@ export async function changeUserPassword(userId: number, currentPassword: string
         const hash = await bcrypt.hash(newPassword, getBcryptSaltRounds());
         const token = await generateUniqueToken(50);
         await query(
-            "UPDATE utilisateur SET mdpbcrypt = $1, token_utilisateur = $2 WHERE id_utilisateur = $3",
+            "UPDATE utilisateur SET mdpbcrypt = $1, token = $2 WHERE id_utilisateur = $3",
             [hash, token, userId]
         );
         return { status: "success", token };

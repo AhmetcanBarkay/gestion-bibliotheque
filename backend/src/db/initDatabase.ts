@@ -20,10 +20,16 @@ CREATE TABLE IF NOT EXISTS utilisateur (
     id_utilisateur  INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     identifiant     VARCHAR(50) NOT NULL UNIQUE,
     mdpbcrypt       VARCHAR(60) NOT NULL,
-    token_utilisateur VARCHAR(50) NOT NULL UNIQUE,
+    token           VARCHAR(50) NOT NULL UNIQUE,
     role            role_utilisateur NOT NULL
 );
 `);
+    // Migration de token_utilisateur a token dans utilisateur
+    try {
+        await query("ALTER TABLE utilisateur RENAME token_utilisateur TO token;");
+    } catch (error: unknown) {
+
+    };
 
     await query(`
 CREATE OR REPLACE FUNCTION interdire_modification_role_utilisateur()
@@ -135,17 +141,17 @@ async function ensureAdminFromEnv(): Promise<void> {
     const existing = await query<{
         id_utilisateur: number;
         mdpbcrypt: string;
-        token_utilisateur: string;
+        token: string;
         role: Role;
     }>(
-        "SELECT id_utilisateur, mdpbcrypt, token_utilisateur, role FROM utilisateur WHERE identifiant = $1 LIMIT 1",
+        "SELECT id_utilisateur, mdpbcrypt, token, role FROM utilisateur WHERE identifiant = $1 LIMIT 1",
         [adminUsername]
     )
     if (existing.rows.length === 0) {
         const hash = await bcrypt.hash(adminPassword, getBcryptSaltRounds());
         const adminToken = await generateUniqueToken(50);
         await query(
-            "INSERT INTO utilisateur (identifiant, mdpbcrypt, token_utilisateur, role) VALUES ($1, $2, $3, 'admin')",
+            "INSERT INTO utilisateur (identifiant, mdpbcrypt, token, role) VALUES ($1, $2, $3, 'admin')",
             [adminUsername, hash, adminToken]
         );
         return;
