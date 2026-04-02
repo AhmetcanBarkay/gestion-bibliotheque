@@ -106,12 +106,12 @@ Terminal 2 (frontend Vite):
 npm run dev:frontend
 ```
 
-Les deux processus doivent tourner en meme temps en mode dev:
+Les deux processus doivent tourner en même temps en mode dev:
 
-- le backend expose l'API (port 3000 par defaut)
-- le frontend sert l'interface web (port 5173 par defaut)
+- le backend expose l'API (port 3000 par défaut)
+- le frontend sert l'interface web (port 5173 par défaut)
 
-Si un seul des deux est lance, l'application sera partiellement utilisable.
+Si un seul des deux est lancé, l'application sera partiellement utilisable.
 
 URLs locales:
 
@@ -121,7 +121,7 @@ URLs locales:
 Limites de sécurité (mode test actuel):
 
 - `POST /auth/login`: 10 tentatives maximum par 15 minutes
-- `POST /auth/register`: 20 creations de comptes maximum par 15 minutes
+- `POST /auth/register`: 20 créations de comptes maximum par 15 minutes
 - `Toutes les routes /client`: 300 requêtes maximum par IP sur 15 minutes
 
 ## Comment tester l'application
@@ -141,43 +141,43 @@ npm run test
 ```
 
 Ce script lance tous les tests du dossier `backend/src/tests`.
-Il execute automatiquement tous les fichiers `*.test.ts` dans `backend/src/tests`.
-Il couvre les fonctionnalites des roles, de l'authentification et des triggers avec des fichiers separes:
+Il exécute automatiquement tous les fichiers `*.test.ts` dans `backend/src/tests`.
+Il couvre les fonctionnalités des rôles, de l'authentification et des triggers avec des fichiers séparés:
 
 - admin
-- bibliothecaire
+- bibliothécaire
 - client
 - auth
 - trigger
 
-Initialisation rapide des donnees de test:
+Initialisation rapide des données de test:
 
 ```bash
 npm run seed-test-data
 ```
 
-Ce script ajoute des donnees de base via les services backend:
+Ce script ajoute des données de base via les services backend:
 
 - 6 livres
-- 6 auteurs lies a ces livres
+- 6 auteurs liés à ces livres
 - 2 livres avec 3 exemplaires
 - 2 livres avec 2 exemplaires
 - 2 livres avec 1 exemplaire
-- 1 compte bibliothecaire de test
+- 1 compte bibliothécaire de test
 - 2 comptes clients de test avec abonnement actif
-- 1 emprunt ancien force en retard pour un client de test
+- 1 emprunt ancien forcé en retard pour un client de test
 
-Identifiants du compte bibliothecaire de test (affiches aussi en sortie de script):
+Identifiants du compte bibliothécaire de test (affichés aussi en sortie de script):
 
 - Username: `bibliothecaire_test`
 - Mot de passe: `Testbiblio123!`
 
-Identifiants des comptes clients abonnes de test (affiches aussi en sortie de script):
+Identifiants des comptes clients abonnés de test (affichés aussi en sortie de script):
 
 - Username: `client_test_1`
 - Username: `client_test_2`
 - Mot de passe (les 2 comptes): `Testclient123!`
-- Code serie: affiche dans la sortie du script
+- Code série: affiché dans la sortie du script
 
 Tests fonctionnels manuels recommandés:
 
@@ -197,5 +197,5 @@ Tests fonctionnels manuels recommandés:
 - `npm run build:frontend`: compile le frontend.
 - `npm run build`: build complet backend + frontend.
 - `npm run test`: lance tous les tests du dossier `backend/src/tests`.
-- `npm run seed-test-data`: ajoute des donnees de base de test (livres, exemplaires, compte bibliothecaire).
+- `npm run seed-test-data`: ajoute des données de base de test (livres, exemplaires, compte bibliothécaire).
 - `npm run start`: lance le backend compilé.
